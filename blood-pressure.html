@@ -29,9 +29,19 @@
     text-align: center;
   }
 
+  .card.hidden {
+    display: none;
+  }
+
   h1 {
     font-size: 20px;
     margin: 0 0 28px;
+    color: #222;
+  }
+
+  h2.section-title {
+    font-size: 18px;
+    margin: 0 0 18px;
     color: #222;
   }
 
@@ -50,6 +60,39 @@
 
   button:active {
     opacity: 0.85;
+  }
+
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .value-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-align: left;
+    background: #eef2f6;
+    color: #222;
+  }
+
+  .value-btn.filled {
+    background: #e3f4e6;
+  }
+
+  .value-btn .label {
+    font-size: 16px;
+  }
+
+  .value-btn .value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2E86DE;
+  }
+
+  #submit-btn {
+    background: #2E86DE;
+    margin-top: 20px;
   }
 
   .back-link {
@@ -110,13 +153,6 @@
     margin-bottom: 8px;
   }
 
-  .modal .value-display {
-    font-size: 32px;
-    font-weight: bold;
-    color: #222;
-    margin: 8px 0 22px;
-  }
-
   .modal .row {
     display: flex;
     gap: 10px;
@@ -134,17 +170,59 @@
   .btn-confirm {
     background: #2E86DE !important;
   }
+
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 17px;
+  }
+
+  .summary-row .value {
+    font-weight: bold;
+    color: #2E86DE;
+  }
+
+  .checkmark {
+    font-size: 48px;
+    margin-bottom: 8px;
+  }
 </style>
 </head>
 <body>
 
-  <div class="card">
+  <!-- Screen 1: pick and enter the 3 values -->
+  <div class="card" id="entry-screen">
     <h1 id="datetime-headline">Today is the ...</h1>
 
-    <button onclick="openEntry('systolic', 'Systolic (top number)')">Systolic (top number)</button>
-    <button onclick="openEntry('diastolic', 'Diastolic (bottom number)')">Diastolic (bottom number)</button>
-    <button onclick="openEntry('heart_rate', 'Heart rate')">Heart rate</button>
+    <button class="value-btn" id="btn-systolic" onclick="openEntry('systolic', 'Systolic (top number)')">
+      <span class="label">Systolic (top number)</span>
+      <span class="value" id="value-systolic"></span>
+    </button>
+    <button class="value-btn" id="btn-diastolic" onclick="openEntry('diastolic', 'Diastolic (bottom number)')">
+      <span class="label">Diastolic (bottom number)</span>
+      <span class="value" id="value-diastolic"></span>
+    </button>
+    <button class="value-btn" id="btn-heart_rate" onclick="openEntry('heart_rate', 'Heart rate')">
+      <span class="label">Heart rate</span>
+      <span class="value" id="value-heart_rate"></span>
+    </button>
 
+    <button id="submit-btn" onclick="openSummary()">Submit</button>
+
+    <a class="back-link" href="index.html">&larr; Back to home</a>
+  </div>
+
+  <!-- Screen 2: approved values shown after saving -->
+  <div class="card hidden" id="saved-screen">
+    <div class="checkmark">&#9989;</div>
+    <h2 class="section-title">Saved</h2>
+    <div class="summary-row"><span>Systolic (top number)</span><span class="value" id="saved-systolic"></span></div>
+    <div class="summary-row"><span>Diastolic (bottom number)</span><span class="value" id="saved-diastolic"></span></div>
+    <div class="summary-row"><span>Heart rate</span><span class="value" id="saved-heart_rate"></span></div>
+
+    <button onclick="startNewSession()" style="margin-top:22px;">Log another reading</button>
     <a class="back-link" href="index.html">&larr; Back to home</a>
   </div>
 
@@ -156,26 +234,28 @@
       <div class="error" id="entry-error"></div>
       <div class="row">
         <button class="btn-secondary" onclick="closeModals()">Cancel</button>
-        <button class="btn-confirm" onclick="goToConfirm()">Continue</button>
+        <button class="btn-confirm" onclick="saveEntryValue()">OK</button>
       </div>
     </div>
   </div>
 
-  <!-- Step 2: are you sure -->
+  <!-- Step 2: are you sure, showing all 3 values -->
   <div class="overlay" id="confirm-overlay">
     <div class="modal">
-      <h2 id="confirm-title">Are you sure?</h2>
-      <div class="value-display" id="confirm-value"></div>
-      <div class="row">
-        <button class="btn-secondary" onclick="backToEntry()">Edit</button>
-        <button class="btn-confirm" onclick="submitReading()">Yes, Save</button>
+      <h2>Are you sure?</h2>
+      <div class="summary-row"><span>Systolic (top number)</span><span class="value" id="confirm-systolic"></span></div>
+      <div class="summary-row"><span>Diastolic (bottom number)</span><span class="value" id="confirm-diastolic"></span></div>
+      <div class="summary-row"><span>Heart rate</span><span class="value" id="confirm-heart_rate"></span></div>
+      <div class="row" style="margin-top:20px;">
+        <button class="btn-secondary" onclick="closeModals()">Edit</button>
+        <button class="btn-confirm" id="confirm-save-btn" onclick="submitReadings()">Yes, Save</button>
       </div>
     </div>
   </div>
 
   <script type="module">
-    import { saveReading } from './db.js';
-    window.__saveReading = saveReading;
+    import { saveReadings } from './db.js';
+    window.__saveReadings = saveReadings;
   </script>
 
   <script>
@@ -188,20 +268,25 @@
     updateHeadline();
     setInterval(updateHeadline, 1000);
 
-    let currentType = null;
-    let currentLabel = null;
+    const labels = {
+      systolic: 'Systolic (top number)',
+      diastolic: 'Diastolic (bottom number)',
+      heart_rate: 'Heart rate'
+    };
 
-    function openEntry(type, label) {
+    let values = { systolic: null, diastolic: null, heart_rate: null };
+    let currentType = null;
+
+    function openEntry(type) {
       currentType = type;
-      currentLabel = label;
-      document.getElementById('entry-title').textContent = `Enter ${label}`;
-      document.getElementById('entry-input').value = '';
+      document.getElementById('entry-title').textContent = `Enter ${labels[type]}`;
+      document.getElementById('entry-input').value = values[type] !== null ? values[type] : '';
       document.getElementById('entry-error').textContent = '';
       document.getElementById('entry-overlay').classList.add('active');
       setTimeout(() => document.getElementById('entry-input').focus(), 50);
     }
 
-    function goToConfirm() {
+    function saveEntryValue() {
       const input = document.getElementById('entry-input');
       const value = Number(input.value);
 
@@ -210,30 +295,52 @@
         return;
       }
 
-      document.getElementById('entry-overlay').classList.remove('active');
-      document.getElementById('confirm-title').textContent = `Confirm ${currentLabel}`;
-      document.getElementById('confirm-value').textContent = value;
+      values[currentType] = value;
+      document.getElementById('value-' + currentType).textContent = value;
+      document.getElementById('btn-' + currentType).classList.add('filled');
+      closeModals();
+    }
+
+    function openSummary() {
+      if (values.systolic === null || values.diastolic === null || values.heart_rate === null) {
+        alert('Please enter all 3 values before submitting.');
+        return;
+      }
+      document.getElementById('confirm-systolic').textContent = values.systolic;
+      document.getElementById('confirm-diastolic').textContent = values.diastolic;
+      document.getElementById('confirm-heart_rate').textContent = values.heart_rate;
       document.getElementById('confirm-overlay').classList.add('active');
     }
 
-    function backToEntry() {
-      document.getElementById('confirm-overlay').classList.remove('active');
-      document.getElementById('entry-overlay').classList.add('active');
+    async function submitReadings() {
+      const btn = document.getElementById('confirm-save-btn');
+      btn.disabled = true;
+      try {
+        await window.__saveReadings(values);
+        closeModals();
+        showSavedScreen();
+      } catch (err) {
+        btn.disabled = false;
+        alert('Could not save readings, please try again.\n' + err.message);
+      }
     }
 
-    async function submitReading() {
-      const value = Number(document.getElementById('confirm-value').textContent);
-      const confirmButtons = document.querySelectorAll('#confirm-overlay button');
-      confirmButtons.forEach(b => b.disabled = true);
+    function showSavedScreen() {
+      document.getElementById('saved-systolic').textContent = values.systolic;
+      document.getElementById('saved-diastolic').textContent = values.diastolic;
+      document.getElementById('saved-heart_rate').textContent = values.heart_rate;
+      document.getElementById('entry-screen').classList.add('hidden');
+      document.getElementById('saved-screen').classList.remove('hidden');
+    }
 
-      try {
-        await window.__saveReading(currentType, value);
-        closeModals();
-        window.location.href = 'index.html';
-      } catch (err) {
-        confirmButtons.forEach(b => b.disabled = false);
-        alert('Could not save reading, please try again.\n' + err.message);
-      }
+    function startNewSession() {
+      values = { systolic: null, diastolic: null, heart_rate: null };
+      ['systolic', 'diastolic', 'heart_rate'].forEach(type => {
+        document.getElementById('value-' + type).textContent = '';
+        document.getElementById('btn-' + type).classList.remove('filled');
+      });
+      document.getElementById('saved-screen').classList.add('hidden');
+      document.getElementById('entry-screen').classList.remove('hidden');
     }
 
     function closeModals() {
@@ -242,9 +349,10 @@
     }
 
     window.openEntry = openEntry;
-    window.goToConfirm = goToConfirm;
-    window.backToEntry = backToEntry;
-    window.submitReading = submitReading;
+    window.saveEntryValue = saveEntryValue;
+    window.openSummary = openSummary;
+    window.submitReadings = submitReadings;
+    window.startNewSession = startNewSession;
     window.closeModals = closeModals;
   </script>
 

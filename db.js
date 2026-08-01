@@ -3,7 +3,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore,
   collection,
-  addDoc,
+  doc,
+  writeBatch,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -21,13 +22,25 @@ const db = getFirestore(app);
 
 const PERSON = "Amit";
 
-// type: "systolic" | "diastolic" | "heart_rate"
-export async function saveReading(type, value) {
-  await addDoc(collection(db, "readings"), {
-    person: PERSON,
-    type,
-    value,
-    recordedAt: serverTimestamp(),
-    recordedAtLocal: new Date().toString()
-  });
+// values: { systolic: number, diastolic: number, heart_rate: number }
+// Saved as 3 documents sharing one sessionId, so a single reading session
+// (all 3 numbers taken together) can later be grouped back into one row.
+export async function saveReadings(values) {
+  const sessionId = crypto.randomUUID();
+  const recordedAtLocal = new Date().toString();
+  const batch = writeBatch(db);
+
+  for (const [type, value] of Object.entries(values)) {
+    const ref = doc(collection(db, "readings"));
+    batch.set(ref, {
+      person: PERSON,
+      type,
+      value,
+      sessionId,
+      recordedAt: serverTimestamp(),
+      recordedAtLocal
+    });
+  }
+
+  await batch.commit();
 }
