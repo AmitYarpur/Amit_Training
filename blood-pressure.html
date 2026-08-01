@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Blood Pressure</title>
+
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, Arial, sans-serif;
+    background: #f5f7fa;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 420px;
+    background: white;
+    padding: 32px 24px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+
+  h1 {
+    font-size: 20px;
+    margin: 0 0 28px;
+    color: #222;
+  }
+
+  button {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    margin: 12px 0;
+    border: none;
+    border-radius: 10px;
+    background: #4CAF50;
+    color: white;
+    font-size: 17px;
+    cursor: pointer;
+  }
+
+  button:active {
+    opacity: 0.85;
+  }
+
+  .back-link {
+    display: block;
+    margin-top: 20px;
+    color: #666;
+    font-size: 15px;
+    text-decoration: none;
+    background: none;
+    width: auto;
+    padding: 0;
+  }
+
+  /* Modal */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .overlay.active {
+    display: flex;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: 360px;
+    background: white;
+    border-radius: 16px;
+    padding: 28px 22px;
+    text-align: center;
+  }
+
+  .modal h2 {
+    font-size: 18px;
+    margin: 0 0 18px;
+    color: #222;
+  }
+
+  .modal input[type="number"] {
+    width: 100%;
+    font-size: 24px;
+    text-align: center;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+
+  .modal .error {
+    color: #d32f2f;
+    font-size: 14px;
+    min-height: 18px;
+    margin-bottom: 8px;
+  }
+
+  .modal .value-display {
+    font-size: 32px;
+    font-weight: bold;
+    color: #222;
+    margin: 8px 0 22px;
+  }
+
+  .modal .row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .modal .row button {
+    margin: 0;
+  }
+
+  .btn-secondary {
+    background: #eee !important;
+    color: #333 !important;
+  }
+
+  .btn-confirm {
+    background: #2E86DE !important;
+  }
+</style>
+</head>
+<body>
+
+  <div class="card">
+    <h1 id="datetime-headline">Today is the ...</h1>
+
+    <button onclick="openEntry('systolic', 'Systolic (top number)')">Systolic (top number)</button>
+    <button onclick="openEntry('diastolic', 'Diastolic (bottom number)')">Diastolic (bottom number)</button>
+    <button onclick="openEntry('heart_rate', 'Heart rate')">Heart rate</button>
+
+    <a class="back-link" href="index.html">&larr; Back to home</a>
+  </div>
+
+  <!-- Step 1: enter value -->
+  <div class="overlay" id="entry-overlay">
+    <div class="modal">
+      <h2 id="entry-title">Enter value</h2>
+      <input type="number" id="entry-input" inputmode="numeric" placeholder="e.g. 120">
+      <div class="error" id="entry-error"></div>
+      <div class="row">
+        <button class="btn-secondary" onclick="closeModals()">Cancel</button>
+        <button class="btn-confirm" onclick="goToConfirm()">Continue</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: are you sure -->
+  <div class="overlay" id="confirm-overlay">
+    <div class="modal">
+      <h2 id="confirm-title">Are you sure?</h2>
+      <div class="value-display" id="confirm-value"></div>
+      <div class="row">
+        <button class="btn-secondary" onclick="backToEntry()">Edit</button>
+        <button class="btn-confirm" onclick="submitReading()">Yes, Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { saveReading } from './db.js';
+    window.__saveReading = saveReading;
+  </script>
+
+  <script>
+    function updateHeadline() {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const timeStr = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('datetime-headline').textContent = `Today is the ${dateStr} and ${timeStr}`;
+    }
+    updateHeadline();
+    setInterval(updateHeadline, 1000);
+
+    let currentType = null;
+    let currentLabel = null;
+
+    function openEntry(type, label) {
+      currentType = type;
+      currentLabel = label;
+      document.getElementById('entry-title').textContent = `Enter ${label}`;
+      document.getElementById('entry-input').value = '';
+      document.getElementById('entry-error').textContent = '';
+      document.getElementById('entry-overlay').classList.add('active');
+      setTimeout(() => document.getElementById('entry-input').focus(), 50);
+    }
+
+    function goToConfirm() {
+      const input = document.getElementById('entry-input');
+      const value = Number(input.value);
+
+      if (input.value.trim() === '' || !Number.isFinite(value) || value <= 0) {
+        document.getElementById('entry-error').textContent = 'Please enter a valid number';
+        return;
+      }
+
+      document.getElementById('entry-overlay').classList.remove('active');
+      document.getElementById('confirm-title').textContent = `Confirm ${currentLabel}`;
+      document.getElementById('confirm-value').textContent = value;
+      document.getElementById('confirm-overlay').classList.add('active');
+    }
+
+    function backToEntry() {
+      document.getElementById('confirm-overlay').classList.remove('active');
+      document.getElementById('entry-overlay').classList.add('active');
+    }
+
+    async function submitReading() {
+      const value = Number(document.getElementById('confirm-value').textContent);
+      const confirmButtons = document.querySelectorAll('#confirm-overlay button');
+      confirmButtons.forEach(b => b.disabled = true);
+
+      try {
+        await window.__saveReading(currentType, value);
+        closeModals();
+        window.location.href = 'index.html';
+      } catch (err) {
+        confirmButtons.forEach(b => b.disabled = false);
+        alert('Could not save reading, please try again.\n' + err.message);
+      }
+    }
+
+    function closeModals() {
+      document.getElementById('entry-overlay').classList.remove('active');
+      document.getElementById('confirm-overlay').classList.remove('active');
+    }
+
+    window.openEntry = openEntry;
+    window.goToConfirm = goToConfirm;
+    window.backToEntry = backToEntry;
+    window.submitReading = submitReading;
+    window.closeModals = closeModals;
+  </script>
+
+</body>
+</html>
