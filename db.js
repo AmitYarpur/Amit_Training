@@ -3,8 +3,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore,
   collection,
-  doc,
-  writeBatch,
+  addDoc,
   serverTimestamp,
   query,
   orderBy,
@@ -23,53 +22,41 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const PERSON = "Amit";
+// Hardcoded for now; once the app supports multiple users this becomes
+// whoever is signed in / selected, and every call below already takes
+// the username as a parameter so nothing else has to change.
+const CURRENT_USER = "Amit";
 
-// values: { systolic: number, diastolic: number, heart_rate: number }
-// Saved as 3 documents sharing one sessionId, so a single reading session
-// (all 3 numbers taken together) can later be grouped back into one row.
-export async function saveReadings(values) {
-  const sessionId = crypto.randomUUID();
-  const recordedAtLocal = new Date().toString();
-  const batch = writeBatch(db);
-
-  for (const [type, value] of Object.entries(values)) {
-    const ref = doc(collection(db, "readings"));
-    batch.set(ref, {
-      person: PERSON,
-      type,
-      value,
-      sessionId,
-      recordedAt: serverTimestamp(),
-      recordedAtLocal
-    });
-  }
-
-  await batch.commit();
+function bloodPressureCollection(username) {
+  return collection(db, "users", username, "bloodPressureReadings");
 }
 
-// Returns one row per reading session: { sessionId, recordedAt: Date, systolic, diastolic, heart_rate }
-// sorted oldest first. Readings saved without a sessionId (from early testing)
-// each become their own row, keyed by their document id.
-export async function getBloodPressureSessions() {
-  const q = query(collection(db, "readings"), orderBy("recordedAt", "asc"));
+// values: { systolic: number, diastolic: number, heart_rate: number }
+// Saved as a single record under the user, so one submission = one row.
+export async function saveReadings(values, username = CURRENT_USER) {
+  await addDoc(bloodPressureCollection(username), {
+    systolic: values.systolic,
+    diastolic: values.diastolic,
+    heart_rate: values.heart_rate,
+    recordedAt: serverTimestamp(),
+    recordedAtLocal: new Date().toString()
+  });
+}
+
+// Returns one row per reading: { id, recordedAt: Date, systolic, diastolic, heart_rate }
+// sorted oldest first.
+export async function getBloodPressureSessions(username = CURRENT_USER) {
+  const q = query(bloodPressureCollection(username), orderBy("recordedAt", "asc"));
   const snap = await getDocs(q);
 
-  const sessions = new Map();
-
-  snap.docs.forEach(docSnap => {
+  return snap.docs.map(docSnap => {
     const data = docSnap.data();
-    if (data.person !== PERSON) return;
-
-    const key = data.sessionId || docSnap.id;
-    if (!sessions.has(key)) {
-      sessions.set(key, {
-        sessionId: key,
-        recordedAt: data.recordedAt ? data.recordedAt.toDate() : new Date(data.recordedAtLocal)
-      });
-    }
-    sessions.get(key)[data.type] = data.value;
+    return {
+      id: docSnap.id,
+      recordedAt: data.recordedAt ? data.recordedAt.toDate() : new Date(data.recordedAtLocal),
+      systolic: data.systolic,
+      diastolic: data.diastolic,
+      heart_rate: data.heart_rate
+    };
   });
-
-  return Array.from(sessions.values()).sort((a, b) => a.recordedAt - b.recordedAt);
 }
