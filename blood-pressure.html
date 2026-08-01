@@ -4,226 +4,76 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Blood Pressure</title>
+<link rel="stylesheet" href="styles.css">
 
 <style>
-  * { box-sizing: border-box; }
-
-  body {
-    font-family: -apple-system, Arial, sans-serif;
-    background: #f5f7fa;
-    margin: 0;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-  }
-
-  .card {
-    width: 100%;
-    max-width: 420px;
-    background: white;
-    padding: 32px 24px;
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    text-align: center;
-  }
-
-  .card.hidden {
-    display: none;
-  }
-
-  h1 {
-    font-size: 20px;
-    margin: 0 0 28px;
-    color: #222;
-  }
-
-  h2.section-title {
-    font-size: 18px;
-    margin: 0 0 18px;
-    color: #222;
-  }
-
-  button {
-    display: block;
-    width: 100%;
-    padding: 16px;
-    margin: 12px 0;
-    border: none;
-    border-radius: 10px;
-    background: #4CAF50;
-    color: white;
-    font-size: 17px;
-    cursor: pointer;
-  }
-
-  button:active {
-    opacity: 0.85;
-  }
-
-  button:disabled {
-    opacity: 0.5;
-    cursor: default;
-  }
-
-  .value-btn {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    text-align: left;
-    background: #eef2f6;
-    color: #222;
-  }
-
-  .value-btn.filled {
-    background: #e3f4e6;
-  }
-
-  .value-btn .label {
-    font-size: 16px;
-  }
-
-  .value-btn .value {
-    font-size: 18px;
-    font-weight: bold;
-    color: #2E86DE;
-  }
+  .card.hidden { display: none; }
 
   #submit-btn {
-    background: #2E86DE;
-    margin-top: 20px;
-  }
-
-  .back-link {
-    display: block;
-    margin-top: 20px;
-    color: #666;
-    font-size: 15px;
-    text-decoration: none;
-    background: none;
-    width: auto;
-    padding: 0;
-  }
-
-  /* Modal */
-  .overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-  }
-
-  .overlay.active {
-    display: flex;
-  }
-
-  .modal {
-    width: 100%;
-    max-width: 360px;
-    background: white;
-    border-radius: 16px;
-    padding: 28px 22px;
-    text-align: center;
-  }
-
-  .modal h2 {
-    font-size: 18px;
-    margin: 0 0 18px;
-    color: #222;
-  }
-
-  .modal input[type="number"] {
-    width: 100%;
-    font-size: 24px;
-    text-align: center;
-    padding: 12px;
-    border: 2px solid #ddd;
-    border-radius: 10px;
-    margin-bottom: 8px;
-  }
-
-  .modal .error {
-    color: #d32f2f;
-    font-size: 14px;
-    min-height: 18px;
-    margin-bottom: 8px;
-  }
-
-  .modal .row {
-    display: flex;
-    gap: 10px;
-  }
-
-  .modal .row button {
-    margin: 0;
-  }
-
-  .btn-secondary {
-    background: #eee !important;
-    color: #333 !important;
-  }
-
-  .btn-confirm {
-    background: #2E86DE !important;
-  }
-
-  .summary-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid #eee;
-    font-size: 17px;
-  }
-
-  .summary-row .value {
-    font-weight: bold;
-    color: #2E86DE;
-  }
-
-  .checkmark {
-    font-size: 48px;
-    margin-bottom: 8px;
+    margin-top: 22px;
   }
 </style>
 </head>
 <body>
 
-  <!-- Screen 1: pick and enter the 3 values -->
-  <div class="card" id="entry-screen">
-    <h1 id="datetime-headline">Today is the ...</h1>
+  <div class="page">
 
-    <button class="value-btn" id="btn-systolic" onclick="openEntry('systolic', 'Systolic (top number)')">
-      <span class="label">Systolic (top number)</span>
-      <span class="value" id="value-systolic"></span>
-    </button>
-    <button class="value-btn" id="btn-diastolic" onclick="openEntry('diastolic', 'Diastolic (bottom number)')">
-      <span class="label">Diastolic (bottom number)</span>
-      <span class="value" id="value-diastolic"></span>
-    </button>
-    <button class="value-btn" id="btn-heart_rate" onclick="openEntry('heart_rate', 'Heart rate')">
-      <span class="label">Heart rate</span>
-      <span class="value" id="value-heart_rate"></span>
-    </button>
+    <!-- Screen 1: pick and enter the 3 values -->
+    <div class="card" id="entry-screen">
+      <p class="eyebrow">Blood Pressure</p>
+      <h1 class="headline" id="datetime-headline" style="font-size:18px;">Today is the ...</h1>
 
-    <button id="submit-btn" onclick="openSummary()">Submit</button>
+      <div class="tile-list" style="margin-top:18px;">
+        <button class="tile-btn" id="btn-systolic" onclick="openEntry('systolic')">
+          <span class="icon-badge badge-blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8"/><path d="M8 7l4-4 4 4"/><path d="M5 21h14"/></svg>
+          </span>
+          <span class="tile-label">Systolic (top number)</span>
+          <span class="tile-value" id="value-systolic"></span>
+        </button>
 
-    <a class="back-link" href="index.html#menu">&larr; Back to home</a>
-  </div>
+        <button class="tile-btn" id="btn-diastolic" onclick="openEntry('diastolic')">
+          <span class="icon-badge badge-teal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M16 17l-4 4-4-4"/><path d="M5 3h14"/></svg>
+          </span>
+          <span class="tile-label">Diastolic (bottom number)</span>
+          <span class="tile-value" id="value-diastolic"></span>
+        </button>
 
-  <!-- Screen 2: approved values shown after saving -->
-  <div class="card hidden" id="saved-screen">
-    <div class="checkmark">&#9989;</div>
-    <h2 class="section-title">Saved</h2>
-    <div class="summary-row"><span>Systolic (top number)</span><span class="value" id="saved-systolic"></span></div>
-    <div class="summary-row"><span>Diastolic (bottom number)</span><span class="value" id="saved-diastolic"></span></div>
-    <div class="summary-row"><span>Heart rate</span><span class="value" id="saved-heart_rate"></span></div>
+        <button class="tile-btn" id="btn-heart_rate" onclick="openEntry('heart_rate')">
+          <span class="icon-badge badge-orange">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l1.5-4.5 3 9 2-11 2 6.5h6.5"/></svg>
+          </span>
+          <span class="tile-label">Heart rate</span>
+          <span class="tile-value" id="value-heart_rate"></span>
+        </button>
+      </div>
 
-    <button onclick="startNewSession()" style="margin-top:22px;">Log another reading</button>
-    <a class="back-link" href="index.html#menu">&larr; Back to home</a>
+      <button class="btn-primary" id="submit-btn" onclick="openSummary()">Submit</button>
+
+      <a class="back-link" href="index.html#menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+        Back to home
+      </a>
+    </div>
+
+    <!-- Screen 2: approved values shown after saving -->
+    <div class="card hidden" id="saved-screen" style="text-align:center;">
+      <div class="checkmark-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h2 class="headline" style="text-align:center;">Saved</h2>
+      <div class="summary-row"><span>Systolic (top number)</span><span class="value" id="saved-systolic"></span></div>
+      <div class="summary-row"><span>Diastolic (bottom number)</span><span class="value" id="saved-diastolic"></span></div>
+      <div class="summary-row"><span>Heart rate</span><span class="value" id="saved-heart_rate"></span></div>
+
+      <button class="btn-primary" onclick="startNewSession()" style="margin-top:22px;">Log another reading</button>
+      <a class="back-link" href="index.html#menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+        Back to home
+      </a>
+    </div>
+
   </div>
 
   <!-- Step 1: enter value -->
@@ -234,7 +84,7 @@
       <div class="error" id="entry-error"></div>
       <div class="row">
         <button class="btn-secondary" onclick="closeModals()">Cancel</button>
-        <button class="btn-confirm" onclick="saveEntryValue()">OK</button>
+        <button class="btn-primary" onclick="saveEntryValue()">OK</button>
       </div>
     </div>
   </div>
@@ -248,7 +98,7 @@
       <div class="summary-row"><span>Heart rate</span><span class="value" id="confirm-heart_rate"></span></div>
       <div class="row" style="margin-top:20px;">
         <button class="btn-secondary" onclick="closeModals()">Edit</button>
-        <button class="btn-confirm" id="confirm-save-btn" onclick="submitReadings()">Yes, Save</button>
+        <button class="btn-primary" id="confirm-save-btn" onclick="submitReadings()">Yes, Save</button>
       </div>
     </div>
   </div>

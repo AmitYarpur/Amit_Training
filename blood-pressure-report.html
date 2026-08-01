@@ -4,14 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Blood Pressure Report</title>
+<link rel="stylesheet" href="styles.css">
 
 <style>
-  * { box-sizing: border-box; }
-
   .viz-root {
     color-scheme: light;
     --surface-1:      #fcfcfb;
-    --page-plane:     #f5f7fa;
     --text-primary:   #0b0b0b;
     --text-secondary: #52514e;
     --text-muted:     #898781;
@@ -22,13 +20,9 @@
     --series-heart:     #1baf7a;
   }
 
-  * { box-sizing: border-box; }
-
-  body {
-    font-family: -apple-system, Arial, sans-serif;
-    background: var(--page-plane);
-    margin: 0;
+  body.viz-root {
     padding: 20px;
+    display: block;
   }
 
   .wrap {
@@ -36,31 +30,13 @@
     margin: 0 auto;
   }
 
-  h1 {
-    font-size: 20px;
-    color: var(--text-primary);
-    margin: 4px 0 18px;
+  .wrap h1.headline {
+    font-size: 22px;
+    margin: 4px 0 4px;
   }
 
   .card {
-    background: var(--surface-1);
-    border-radius: 16px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
-    padding: 20px;
     margin-bottom: 20px;
-  }
-
-  .top-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-  }
-
-  .back-link {
-    color: var(--text-secondary);
-    font-size: 15px;
-    text-decoration: none;
   }
 
   .state-msg {
@@ -203,33 +179,19 @@
     color: var(--text-primary);
   }
 
-  #export-btn {
-    display: block;
-    width: 100%;
-    padding: 14px;
-    margin-top: 16px;
-    border: none;
-    border-radius: 10px;
-    background: #2E86DE;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-  }
-
-  #export-btn:active {
-    opacity: 0.85;
-  }
 </style>
 </head>
 <body class="viz-root">
 
   <div class="wrap">
-    <div class="top-actions">
-      <h1>Blood Pressure Report</h1>
-    </div>
-    <a class="back-link" href="reports.html">&larr; Back to reports</a>
+    <p class="eyebrow">Reports</p>
+    <h1 class="headline">Blood Pressure Report</h1>
+    <a class="back-link" href="reports.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      Back to reports
+    </a>
 
-    <div class="card" style="margin-top:16px;">
+    <div class="card" style="margin-top:20px;">
       <div id="state-msg" class="state-msg">Loading readings…</div>
 
       <div id="content" style="display:none;">
@@ -244,7 +206,7 @@
           <div class="tooltip" id="tooltip"></div>
         </div>
 
-        <button id="export-btn" onclick="exportCsv()">Export to CSV</button>
+        <button class="btn-primary" id="export-btn" onclick="exportCsv()" style="margin-top:16px;">Export to CSV</button>
       </div>
     </div>
 
