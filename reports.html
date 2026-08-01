@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Helth</title>
+<title>Reports</title>
 
 <style>
   * { box-sizing: border-box; }
@@ -19,8 +19,7 @@
     padding: 24px;
   }
 
-  .screen {
-    display: none;
+  .card {
     width: 100%;
     max-width: 420px;
     background: white;
@@ -28,16 +27,6 @@
     border-radius: 16px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     text-align: center;
-  }
-
-  .screen.active {
-    display: block;
-  }
-
-  h1 {
-    font-size: 28px;
-    margin: 0 0 24px;
-    color: #222;
   }
 
   h2 {
@@ -63,39 +52,29 @@
     opacity: 0.85;
   }
 
-  #start-btn {
-    background: #2E86DE;
+  .back-link {
+    display: block;
+    margin-top: 20px;
+    color: #666;
+    font-size: 15px;
+    text-decoration: none;
   }
 </style>
 </head>
 <body>
 
-  <div id="welcome-screen" class="screen active">
-    <h1>Wellcome Amit</h1>
-    <button id="start-btn" onclick="showScreen('menu-screen')">Start</button>
-  </div>
+  <div class="card">
+    <h2>Reports</h2>
+    <button onclick="window.location.href='blood-pressure-report.html'">Blood Pressure Reports</button>
+    <button onclick="comingSoon('Weight Reports')">Weight Reports</button>
+    <button onclick="comingSoon('Training Reports')">Training Reports</button>
 
-  <div id="menu-screen" class="screen">
-    <h2>What do you want to do</h2>
-    <button onclick="window.location.href='blood-pressure.html'">Blood Pressure</button>
-    <button onclick="comingSoon('Weight')">Weight</button>
-    <button onclick="comingSoon('Training Update')">Training Update</button>
-    <button onclick="comingSoon('Training Timers')">Training Timers</button>
-    <button onclick="window.open('reports.html', '_blank')">Reports</button>
+    <a class="back-link" href="index.html#menu">&larr; Back to home</a>
   </div>
 
   <script>
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
-
     function comingSoon(feature) {
       alert(feature + ' - coming soon');
-    }
-
-    if (window.location.hash === '#menu') {
-      showScreen('menu-screen');
     }
   </script>
 

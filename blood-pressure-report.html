@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Blood Pressure Report</title>
+
+<style>
+  * { box-sizing: border-box; }
+
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f5f7fa;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --axis:           #c3c2b7;
+    --series-systolic:  #2a78d6;
+    --series-diastolic: #eb6834;
+    --series-heart:     #1baf7a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, Arial, sans-serif;
+    background: var(--page-plane);
+    margin: 0;
+    padding: 20px;
+  }
+
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  h1 {
+    font-size: 20px;
+    color: var(--text-primary);
+    margin: 4px 0 18px;
+  }
+
+  .card {
+    background: var(--surface-1);
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+
+  .top-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  .back-link {
+    color: var(--text-secondary);
+    font-size: 15px;
+    text-decoration: none;
+  }
+
+  .state-msg {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 30px 10px;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .legend-key {
+    width: 16px;
+    height: 2px;
+    border-radius: 1px;
+  }
+
+  /* Chart */
+  #chart-container {
+    position: relative;
+    width: 100%;
+  }
+
+  svg#chart {
+    width: 100%;
+    height: auto;
+    display: block;
+    touch-action: none;
+  }
+
+  .gridline {
+    stroke: var(--gridline);
+    stroke-width: 1;
+  }
+
+  .axis-text {
+    fill: var(--text-muted);
+    font-size: 10px;
+  }
+
+  .series-line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+
+  .marker {
+    stroke: var(--surface-1);
+    stroke-width: 2;
+  }
+
+  .end-label {
+    font-size: 11px;
+    font-weight: 600;
+    fill: var(--text-primary);
+  }
+
+  .crosshair-line {
+    stroke: var(--axis);
+    stroke-width: 1;
+    pointer-events: none;
+    display: none;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--text-primary);
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    display: none;
+    white-space: nowrap;
+    transform: translate(-50%, -110%);
+    z-index: 5;
+  }
+
+  .tooltip .tt-date {
+    color: #ccc;
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .tooltip .tt-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .tooltip .tt-key {
+    width: 10px;
+    height: 2px;
+    display: inline-block;
+  }
+
+  .tooltip .tt-value {
+    font-weight: 700;
+    margin-left: auto;
+    padding-left: 10px;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--gridline);
+    font-variant-numeric: tabular-nums;
+  }
+
+  th {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+
+  td.num {
+    color: var(--text-primary);
+  }
+
+  #export-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin-top: 16px;
+    border: none;
+    border-radius: 10px;
+    background: #2E86DE;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+  }
+
+  #export-btn:active {
+    opacity: 0.85;
+  }
+</style>
+</head>
+<body class="viz-root">
+
+  <div class="wrap">
+    <div class="top-actions">
+      <h1>Blood Pressure Report</h1>
+    </div>
+    <a class="back-link" href="reports.html">&larr; Back to reports</a>
+
+    <div class="card" style="margin-top:16px;">
+      <div id="state-msg" class="state-msg">Loading readings…</div>
+
+      <div id="content" style="display:none;">
+        <div class="legend">
+          <div class="legend-item"><span class="legend-key" style="background:var(--series-systolic)"></span>Systolic</div>
+          <div class="legend-item"><span class="legend-key" style="background:var(--series-diastolic)"></span>Diastolic</div>
+          <div class="legend-item"><span class="legend-key" style="background:var(--series-heart)"></span>Heart rate</div>
+        </div>
+
+        <div id="chart-container">
+          <svg id="chart" viewBox="0 0 680 300" preserveAspectRatio="none"></svg>
+          <div class="tooltip" id="tooltip"></div>
+        </div>
+
+        <button id="export-btn" onclick="exportCsv()">Export to CSV</button>
+      </div>
+    </div>
+
+    <div class="card" id="table-card" style="display:none;">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Time</th><th>Systolic</th><th>Diastolic</th><th>Heart rate</th></tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { getBloodPressureSessions } from './db.js';
+
+    const SERIES = [
+      { key: 'systolic',   label: 'Systolic',   color: 'var(--series-systolic)',  hex: '#2a78d6' },
+      { key: 'diastolic',  label: 'Diastolic',  color: 'var(--series-diastolic)', hex: '#eb6834' },
+      { key: 'heart_rate', label: 'Heart rate', color: 'var(--series-heart)',     hex: '#1baf7a' }
+    ];
+
+    let sessions = [];
+
+    function formatDate(d) {
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+    function formatTime(d) {
+      return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+      // newest first for reading convenience
+      [...sessions].reverse().forEach(s => {
+        const tr = document.createElement('tr');
+        const cells = [
+          formatDate(s.recordedAt),
+          formatTime(s.recordedAt),
+          s.systolic ?? '—',
+          s.diastolic ?? '—',
+          s.heart_rate ?? '—'
+        ];
+        cells.forEach((val, i) => {
+          const td = document.createElement('td');
+          if (i >= 2) td.classList.add('num');
+          td.textContent = String(val);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      document.getElementById('table-card').style.display = 'block';
+    }
+
+    function renderChart() {
+      const svg = document.getElementById('chart');
+      const W = 680, H = 300;
+      const padL = 34, padR = 60, padT = 16, padB = 28;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      const allValues = sessions.flatMap(s => SERIES.map(sr => s[sr.key]).filter(v => v != null));
+      let yMin = Math.min(...allValues);
+      let yMax = Math.max(...allValues);
+      yMin = Math.floor((yMin - 5) / 10) * 10;
+      yMax = Math.ceil((yMax + 5) / 10) * 10;
+      if (yMin === yMax) { yMin -= 10; yMax += 10; }
+
+      const n = sessions.length;
+      const x = i => n === 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
+      const y = v => padT + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+
+      const svgns = 'http://www.w3.org/2000/svg';
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.innerHTML = '';
+
+      // gridlines (4 horizontal steps)
+      const steps = 4;
+      for (let i = 0; i <= steps; i++) {
+        const v = yMin + (i / steps) * (yMax - yMin);
+        const gy = y(v);
+        const line = document.createElementNS(svgns, 'line');
+        line.setAttribute('x1', padL);
+        line.setAttribute('x2', W - padR);
+        line.setAttribute('y1', gy);
+        line.setAttribute('y2', gy);
+        line.setAttribute('class', 'gridline');
+        svg.appendChild(line);
+
+        const label = document.createElementNS(svgns, 'text');
+        label.setAttribute('x', padL - 6);
+        label.setAttribute('y', gy + 3);
+        label.setAttribute('text-anchor', 'end');
+        label.setAttribute('class', 'axis-text');
+        label.textContent = Math.round(v);
+        svg.appendChild(label);
+      }
+
+      // x-axis labels, sparse to avoid crowding
+      const labelEvery = Math.max(1, Math.ceil(n / 6));
+      sessions.forEach((s, i) => {
+        if (i % labelEvery !== 0 && i !== n - 1) return;
+        const label = document.createElementNS(svgns, 'text');
+        label.setAttribute('x', x(i));
+        label.setAttribute('y', H - 8);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('class', 'axis-text');
+        label.textContent = formatDate(s.recordedAt);
+        svg.appendChild(label);
+      });
+
+      // lines + markers per series
+      SERIES.forEach(sr => {
+        const points = sessions
+          .map((s, i) => (s[sr.key] != null ? [x(i), y(s[sr.key])] : null))
+          .filter(Boolean);
+        if (points.length === 0) return;
+
+        const path = document.createElementNS(svgns, 'path');
+        path.setAttribute('d', points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0] + ' ' + p[1]).join(' '));
+        path.setAttribute('class', 'series-line');
+        path.setAttribute('stroke', sr.hex);
+        svg.appendChild(path);
+
+        points.forEach(([px, py]) => {
+          const c = document.createElementNS(svgns, 'circle');
+          c.setAttribute('cx', px);
+          c.setAttribute('cy', py);
+          c.setAttribute('r', 4);
+          c.setAttribute('fill', sr.hex);
+          c.setAttribute('class', 'marker');
+          svg.appendChild(c);
+        });
+
+        // end label
+        const [lastX, lastY] = points[points.length - 1];
+        const last = document.createElementNS(svgns, 'text');
+        last.setAttribute('x', lastX + 8);
+        last.setAttribute('y', lastY + 4);
+        last.setAttribute('class', 'end-label');
+        last.textContent = sr.label + ' ' + sessions[sessions.length - 1][sr.key];
+        svg.appendChild(last);
+      });
+
+      // crosshair
+      const crosshair = document.createElementNS(svgns, 'line');
+      crosshair.setAttribute('y1', padT);
+      crosshair.setAttribute('y2', H - padB);
+      crosshair.setAttribute('class', 'crosshair-line');
+      crosshair.setAttribute('id', 'crosshair');
+      svg.appendChild(crosshair);
+
+      // transparent hit layer
+      const hit = document.createElementNS(svgns, 'rect');
+      hit.setAttribute('x', padL);
+      hit.setAttribute('y', padT);
+      hit.setAttribute('width', plotW);
+      hit.setAttribute('height', plotH);
+      hit.setAttribute('fill', 'transparent');
+      svg.appendChild(hit);
+
+      const tooltip = document.getElementById('tooltip');
+
+      function showAt(i) {
+        const s = sessions[i];
+        crosshair.setAttribute('x1', x(i));
+        crosshair.setAttribute('x2', x(i));
+        crosshair.style.display = 'block';
+
+        tooltip.innerHTML = '';
+        const dateEl = document.createElement('div');
+        dateEl.className = 'tt-date';
+        dateEl.textContent = formatDate(s.recordedAt) + ' · ' + formatTime(s.recordedAt);
+        tooltip.appendChild(dateEl);
+
+        SERIES.forEach(sr => {
+          if (s[sr.key] == null) return;
+          const row = document.createElement('div');
+          row.className = 'tt-row';
+          const key = document.createElement('span');
+          key.className = 'tt-key';
+          key.style.background = sr.hex;
+          const name = document.createElement('span');
+          name.textContent = sr.label;
+          const val = document.createElement('span');
+          val.className = 'tt-value';
+          val.textContent = s[sr.key];
+          row.appendChild(key);
+          row.appendChild(name);
+          row.appendChild(val);
+          tooltip.appendChild(row);
+        });
+
+        const rect = svg.getBoundingClientRect();
+        const px = (x(i) / W) * rect.width;
+        tooltip.style.left = px + 'px';
+        tooltip.style.top = '0px';
+        tooltip.style.display = 'block';
+      }
+
+      function hide() {
+        crosshair.style.display = 'none';
+        tooltip.style.display = 'none';
+      }
+
+      function handlePointer(e) {
+        const rect = svg.getBoundingClientRect();
+        const relX = ((e.clientX - rect.left) / rect.width) * W;
+        let nearest = 0, best = Infinity;
+        sessions.forEach((s, i) => {
+          const d = Math.abs(x(i) - relX);
+          if (d < best) { best = d; nearest = i; }
+        });
+        showAt(nearest);
+      }
+
+      hit.addEventListener('pointerdown', handlePointer);
+      hit.addEventListener('pointermove', handlePointer);
+      hit.addEventListener('pointerleave', hide);
+    }
+
+    function toCsv() {
+      const header = ['Date', 'Time', 'Systolic', 'Diastolic', 'Heart Rate'];
+      const rows = sessions.map(s => [
+        formatDate(s.recordedAt),
+        formatTime(s.recordedAt),
+        s.systolic ?? '',
+        s.diastolic ?? '',
+        s.heart_rate ?? ''
+      ]);
+      return [header, ...rows].map(r => r.join(',')).join('\n');
+    }
+
+    window.exportCsv = function () {
+      const csv = toCsv();
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'blood-pressure-readings.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    async function init() {
+      try {
+        sessions = await getBloodPressureSessions();
+      } catch (err) {
+        document.getElementById('state-msg').textContent = 'Could not load readings: ' + err.message;
+        return;
+      }
+
+      if (sessions.length === 0) {
+        document.getElementById('state-msg').textContent = 'No blood pressure readings logged yet.';
+        return;
+      }
+
+      document.getElementById('state-msg').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      renderChart();
+      renderTable();
+    }
+
+    init();
+  </script>
+
+</body>
+</html>
