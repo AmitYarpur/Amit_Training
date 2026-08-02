@@ -4,20 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blood Pressure Report</title>
-<link rel="stylesheet" href="styles.css">
 <script>
+  if (localStorage.getItem('helth_theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
   if (!localStorage.getItem('helth_user')) {
     window.location.replace('index.html');
   }
 </script>
+<link rel="stylesheet" href="styles.css">
 
 <style>
+  /* These are intentionally NOT named --text-primary etc: the chart plot
+     itself stays on a fixed light "paper" surface regardless of app theme
+     (its colors were validated against that light surface), while the
+     surrounding chrome (card, table, legend) follows the shared theme. */
   .viz-root {
-    color-scheme: light;
-    --surface-1:      #fcfcfb;
-    --text-primary:   #0b0b0b;
-    --text-secondary: #52514e;
-    --text-muted:     #898781;
+    --chart-surface: #fcfcfb;
+    --chart-ink:     #0b0b0b;
+    --chart-muted:   #898781;
     --gridline:       #e1e0d9;
     --axis:           #c3c2b7;
     --series-systolic:  #2a78d6;
@@ -91,7 +96,7 @@
   }
 
   .axis-text {
-    fill: var(--text-muted);
+    fill: var(--chart-muted);
     font-size: 15px;
   }
 
@@ -103,14 +108,14 @@
   }
 
   .marker {
-    stroke: var(--surface-1);
+    stroke: var(--chart-surface);
     stroke-width: 2.5;
   }
 
   .end-label {
     font-size: 16px;
     font-weight: 700;
-    fill: var(--text-primary);
+    fill: var(--chart-ink);
   }
 
   .crosshair-line {
@@ -123,7 +128,7 @@
   .tooltip {
     position: absolute;
     pointer-events: none;
-    background: var(--text-primary);
+    background: var(--chart-ink);
     color: #fff;
     border-radius: 10px;
     padding: 10px 14px;

@@ -4,6 +4,7 @@
   --bg-1: #eaf2ff;
   --bg-2: #eafbf4;
   --bg-3: #fef6ec;
+  --page-base: #f6f8fb;
 
   --accent-1: #2a78d6;   /* blue */
   --accent-2: #1baf7a;   /* teal */
@@ -11,6 +12,11 @@
 
   --surface: rgba(255, 255, 255, 0.82);
   --surface-solid: #ffffff;
+  --surface-wash: rgba(255, 255, 255, 0.6);
+  --surface-wash-strong: rgba(255, 255, 255, 0.95);
+  --field-bg: #fafbfc;
+  --ghost-btn-bg: rgba(15, 23, 34, 0.06);
+  --ghost-btn-bg-active: rgba(15, 23, 34, 0.1);
   --border-hairline: rgba(15, 23, 34, 0.08);
 
   --text-primary: #10161c;
@@ -23,6 +29,33 @@
 
   --shadow-card: 0 20px 40px -16px rgba(20, 40, 60, 0.22);
   --shadow-soft: 0 8px 20px -10px rgba(20, 40, 60, 0.18);
+}
+
+/* Dark mode: dark gray surfaces, white text, olive green accent */
+:root[data-theme="dark"] {
+  --bg-1: #26261f;
+  --bg-2: #21211b;
+  --bg-3: #2a2a22;
+  --page-base: #1a1a17;
+
+  --accent-1: #7c9a4a;   /* olive green */
+  --accent-2: #a3bd6c;   /* lighter olive */
+
+  --surface: rgba(40, 40, 36, 0.82);
+  --surface-solid: #2c2c27;
+  --surface-wash: rgba(255, 255, 255, 0.05);
+  --surface-wash-strong: rgba(255, 255, 255, 0.1);
+  --field-bg: #33332c;
+  --ghost-btn-bg: rgba(255, 255, 255, 0.07);
+  --ghost-btn-bg-active: rgba(255, 255, 255, 0.13);
+  --border-hairline: rgba(255, 255, 255, 0.1);
+
+  --text-primary: #f5f5f0;
+  --text-secondary: #c7c7bd;
+  --text-muted: #93938a;
+
+  --shadow-card: 0 20px 40px -16px rgba(0, 0, 0, 0.5);
+  --shadow-soft: 0 8px 20px -10px rgba(0, 0, 0, 0.4);
 }
 
 * {
@@ -38,9 +71,10 @@ body {
     radial-gradient(circle at 15% 10%, var(--bg-1) 0%, transparent 45%),
     radial-gradient(circle at 85% 15%, var(--bg-3) 0%, transparent 40%),
     radial-gradient(circle at 50% 100%, var(--bg-2) 0%, transparent 55%),
-    #f6f8fb;
+    var(--page-base);
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease;
 }
 
 .page {
@@ -144,13 +178,13 @@ button {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
-  background: rgba(15, 23, 34, 0.06);
+  background: var(--ghost-btn-bg);
   transition: transform 0.15s ease, background 0.15s ease;
 }
 
 .btn-secondary:active {
   transform: scale(0.98);
-  background: rgba(15, 23, 34, 0.1);
+  background: var(--ghost-btn-bg-active);
 }
 
 /* Menu tiles (icon + label + chevron rows) */
@@ -168,14 +202,14 @@ button {
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-md);
   padding: 14px 16px;
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--surface-wash);
   text-align: left;
   transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
 }
 
 .tile-btn:active {
   transform: scale(0.98);
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--surface-wash-strong);
 }
 
 .tile-btn .icon-badge {
@@ -227,13 +261,13 @@ button {
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-md);
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--surface-wash);
   transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .field-row:focus-within {
   border-color: var(--accent-1);
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--surface-wash-strong);
 }
 
 .field-row .icon-badge {
@@ -281,7 +315,7 @@ button {
   font-weight: 600;
 }
 
-/* Date range filter (pill row) */
+/* Generic pill row (used for the date range filter and the settings toggle) */
 .range-filter {
   display: flex;
   gap: 8px;
@@ -301,7 +335,7 @@ button {
   padding: 9px 16px;
   border-radius: 999px;
   border: 1px solid var(--border-hairline);
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--surface-wash);
   font-size: 14px;
   font-weight: 600;
   color: var(--text-secondary);
@@ -328,7 +362,7 @@ button {
   border-radius: var(--radius-sm);
   font-size: 16px;
   color: var(--text-primary);
-  background: #fafbfc;
+  background: var(--field-bg);
   margin-bottom: 12px;
 }
 
@@ -434,7 +468,7 @@ button {
   border-radius: var(--radius-sm);
   margin-bottom: 8px;
   color: var(--text-primary);
-  background: #fafbfc;
+  background: var(--field-bg);
 }
 
 .modal input[type="number"]:focus {

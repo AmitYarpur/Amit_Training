@@ -4,12 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Blood Pressure</title>
-<link rel="stylesheet" href="styles.css">
 <script>
+  if (localStorage.getItem('helth_theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
   if (!localStorage.getItem('helth_user')) {
     window.location.replace('index.html');
   }
 </script>
+<link rel="stylesheet" href="styles.css">
 
 <style>
   .card.hidden { display: none; }

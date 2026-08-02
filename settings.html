@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Settings</title>
+<script>
+  if (localStorage.getItem('helth_theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  if (!localStorage.getItem('helth_user')) {
+    window.location.replace('index.html');
+  }
+</script>
+<link rel="stylesheet" href="styles.css">
+
+<style>
+  .settings-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    background: var(--accent-gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .settings-icon svg {
+    width: 32px;
+    height: 32px;
+    stroke: #fff;
+  }
+
+  .settings-section-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 0 0 10px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="page">
+    <div class="card">
+      <div class="settings-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3.9a7.6 7.6 0 0 0-1.8-1L15 3.5h-4l-.3 2.5a7.6 7.6 0 0 0-1.8 1l-2.3-.9-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9a7.6 7.6 0 0 0 1.8 1l.3 2.5h4l.3-2.5a7.6 7.6 0 0 0 1.8-1l2.3.9 2-3.4-2-1.5Z"/></svg>
+      </div>
+      <p class="eyebrow">Helth</p>
+      <h1 class="headline">Settings</h1>
+      <p class="subtext">These preferences are saved to your account and apply everywhere you log in.</p>
+
+      <p class="settings-section-label">Appearance</p>
+      <div class="range-filter" id="theme-toggle" style="margin-bottom:8px;">
+        <button class="range-pill" data-theme-choice="light">Bright Mode</button>
+        <button class="range-pill" data-theme-choice="dark">Dark Mode</button>
+      </div>
+      <div class="error" id="theme-status" style="min-height:18px; color: var(--text-secondary);"></div>
+
+      <a class="back-link" href="index.html#menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+        Back to home
+      </a>
+    </div>
+  </div>
+
+  <script type="module">
+    import { getThemePreference, saveThemePreference } from './db.js';
+    window.__getThemePreference = getThemePreference;
+    window.__saveThemePreference = saveThemePreference;
+  </script>
+
+  <script>
+    function applyTheme(theme) {
+      if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+      localStorage.setItem('helth_theme', theme);
+    }
+
+    function markActivePill(theme) {
+      document.querySelectorAll('#theme-toggle .range-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.themeChoice === theme);
+      });
+    }
+
+    async function chooseTheme(theme) {
+      applyTheme(theme);
+      markActivePill(theme);
+      const statusEl = document.getElementById('theme-status');
+      statusEl.textContent = 'Saving…';
+      try {
+        await window.__saveThemePreference(theme);
+        statusEl.textContent = 'Saved';
+        setTimeout(() => { statusEl.textContent = ''; }, 1500);
+      } catch (err) {
+        statusEl.textContent = 'Could not save: ' + err.message;
+      }
+    }
+
+    document.querySelectorAll('#theme-toggle .range-pill').forEach(btn => {
+      btn.addEventListener('click', () => chooseTheme(btn.dataset.themeChoice));
+    });
+
+    // Reflect whatever is already applied (from cache) immediately...
+    const cachedTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    markActivePill(cachedTheme);
+
+    // ...then reconcile with the saved value in Firestore in case it
+    // changed on another device.
+    window.__getThemePreference().then(theme => {
+      if (theme && theme !== cachedTheme) {
+        applyTheme(theme);
+        markActivePill(theme);
+      }
+    }).catch(() => {});
+  </script>
+
+</body>
+</html>

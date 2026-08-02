@@ -26,6 +26,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const SESSION_KEY = "helth_user";
+const THEME_KEY = "helth_theme";
 
 // --- Auth (lightweight, no backend) -----------------------------------
 // There's no server here to keep a password check secret, so this is a
@@ -88,6 +89,25 @@ function setCurrentUser(username) {
 
 export function logout() {
   localStorage.removeItem(SESSION_KEY);
+}
+
+// --- Per-user settings (currently just light/dark appearance) ---------
+
+function userDocRef(username) {
+  return doc(db, "users", username);
+}
+
+// theme: "light" | "dark"
+export async function saveThemePreference(theme, username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  await setDoc(userDocRef(username), { theme }, { merge: true });
+  localStorage.setItem(THEME_KEY, theme);
+}
+
+export async function getThemePreference(username = getCurrentUser()) {
+  if (!username) return null;
+  const snap = await getDoc(userDocRef(username));
+  return snap.exists() ? (snap.data().theme || null) : null;
 }
 
 // --- Blood pressure readings, scoped under the current user -----------

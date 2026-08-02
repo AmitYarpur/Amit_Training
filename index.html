@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Helth</title>
+<script>
+  if (localStorage.getItem('helth_theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+</script>
 <link rel="stylesheet" href="styles.css">
 
 <style>
@@ -74,7 +79,7 @@
         <span>Signed in as <strong id="user-badge-name"></strong></span>
         <a onclick="doLogout()">Log out</a>
       </div>
-      <h2 class="headline">What do you want to do</h2>
+      <h2 class="headline">Home Page</h2>
       <div class="tile-list">
         <button class="tile-btn" onclick="window.location.href='blood-pressure.html'">
           <span class="icon-badge badge-blue">
@@ -115,15 +120,35 @@
           <span class="tile-label">Reports</span>
           <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
+
+        <button class="tile-btn" onclick="window.location.href='settings.html'">
+          <span class="icon-badge badge-gray">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3.9a7.6 7.6 0 0 0-1.8-1L15 3.5h-4l-.3 2.5a7.6 7.6 0 0 0-1.8 1l-2.3-.9-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9a7.6 7.6 0 0 0 1.8 1l.3 2.5h4l.3-2.5a7.6 7.6 0 0 0 1.8-1l2.3.9 2-3.4-2-1.5Z"/></svg>
+          </span>
+          <span class="tile-label">Settings</span>
+          <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
       </div>
     </div>
 
   </div>
 
   <script type="module">
-    import { login, signup } from './db.js';
+    import { login, signup, getThemePreference } from './db.js';
     window.__login = login;
     window.__signup = signup;
+    window.__getThemePreference = getThemePreference;
+
+    // If a page load starts out already-logged-in (module executes after the
+    // classic script below has already shown the welcome/menu screen from
+    // cached data), reconcile the theme from Firestore in case it changed
+    // on another device.
+    const loggedInUser = localStorage.getItem('helth_user');
+    if (loggedInUser && window.__applyTheme) {
+      getThemePreference(loggedInUser).then(theme => {
+        if (theme) window.__applyTheme(theme);
+      }).catch(() => {});
+    }
   </script>
 
   <script>
@@ -193,10 +218,28 @@
       window.location.href = 'index.html';
     }
 
-    function enterApp() {
+    function applyTheme(theme) {
+      if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+      localStorage.setItem('helth_theme', theme);
+    }
+
+    async function enterApp() {
       const username = getLocalUser();
       document.getElementById('welcome-headline').textContent = 'Wellcome ' + username;
       document.getElementById('user-badge-name').textContent = username;
+
+      if (window.__getThemePreference) {
+        try {
+          const theme = await window.__getThemePreference(username);
+          if (theme) applyTheme(theme);
+        } catch (e) {
+          // keep whatever theme is already applied
+        }
+      }
 
       if (window.location.hash === '#menu') {
         showScreen('menu-screen');
@@ -210,6 +253,7 @@
     window.setAuthMode = setAuthMode;
     window.submitAuth = submitAuth;
     window.doLogout = doLogout;
+    window.__applyTheme = applyTheme;
 
     if (getLocalUser()) {
       enterApp();
