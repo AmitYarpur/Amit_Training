@@ -18,36 +18,38 @@
 
   <div class="page">
 
-    <!-- Screen 1: pick and enter the 3 values -->
+    <!-- Screen 1: enter the 3 values inline -->
     <div class="card" id="entry-screen">
       <p class="eyebrow">Blood Pressure</p>
       <h1 class="headline" id="datetime-headline" style="font-size:18px;">Today is the ...</h1>
 
       <div class="tile-list" style="margin-top:18px;">
-        <button class="tile-btn" id="btn-systolic" onclick="openEntry('systolic')">
+        <label class="field-row">
           <span class="icon-badge badge-blue">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8"/><path d="M8 7l4-4 4 4"/><path d="M5 21h14"/></svg>
           </span>
-          <span class="tile-label">Systolic (top number)</span>
-          <span class="tile-value" id="value-systolic"></span>
-        </button>
+          <span class="field-label">Systolic (top number)</span>
+          <input class="field-input" type="number" id="input-systolic" inputmode="numeric" placeholder="--">
+        </label>
 
-        <button class="tile-btn" id="btn-diastolic" onclick="openEntry('diastolic')">
+        <label class="field-row">
           <span class="icon-badge badge-teal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M16 17l-4 4-4-4"/><path d="M5 3h14"/></svg>
           </span>
-          <span class="tile-label">Diastolic (bottom number)</span>
-          <span class="tile-value" id="value-diastolic"></span>
-        </button>
+          <span class="field-label">Diastolic (bottom number)</span>
+          <input class="field-input" type="number" id="input-diastolic" inputmode="numeric" placeholder="--">
+        </label>
 
-        <button class="tile-btn" id="btn-heart_rate" onclick="openEntry('heart_rate')">
+        <label class="field-row">
           <span class="icon-badge badge-orange">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l1.5-4.5 3 9 2-11 2 6.5h6.5"/></svg>
           </span>
-          <span class="tile-label">Heart rate</span>
-          <span class="tile-value" id="value-heart_rate"></span>
-        </button>
+          <span class="field-label">Heart rate</span>
+          <input class="field-input" type="number" id="input-heart_rate" inputmode="numeric" placeholder="--">
+        </label>
       </div>
+
+      <div class="error" id="entry-error" style="text-align:center; margin-top:10px;"></div>
 
       <button class="btn-primary" id="submit-btn" onclick="openSummary()">Submit</button>
 
@@ -76,20 +78,7 @@
 
   </div>
 
-  <!-- Step 1: enter value -->
-  <div class="overlay" id="entry-overlay">
-    <div class="modal">
-      <h2 id="entry-title">Enter value</h2>
-      <input type="number" id="entry-input" inputmode="numeric" placeholder="e.g. 120">
-      <div class="error" id="entry-error"></div>
-      <div class="row">
-        <button class="btn-secondary" onclick="closeModals()">Cancel</button>
-        <button class="btn-primary" onclick="saveEntryValue()">OK</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Step 2: are you sure, showing all 3 values -->
+  <!-- Are you sure, showing all 3 values -->
   <div class="overlay" id="confirm-overlay">
     <div class="modal">
       <h2>Are you sure?</h2>
@@ -118,44 +107,28 @@
     updateHeadline();
     setInterval(updateHeadline, 1000);
 
-    const labels = {
-      systolic: 'Systolic (top number)',
-      diastolic: 'Diastolic (bottom number)',
-      heart_rate: 'Heart rate'
-    };
+    const TYPES = ['systolic', 'diastolic', 'heart_rate'];
 
-    let values = { systolic: null, diastolic: null, heart_rate: null };
-    let currentType = null;
-
-    function openEntry(type) {
-      currentType = type;
-      document.getElementById('entry-title').textContent = `Enter ${labels[type]}`;
-      document.getElementById('entry-input').value = values[type] !== null ? values[type] : '';
-      document.getElementById('entry-error').textContent = '';
-      document.getElementById('entry-overlay').classList.add('active');
-      setTimeout(() => document.getElementById('entry-input').focus(), 50);
-    }
-
-    function saveEntryValue() {
-      const input = document.getElementById('entry-input');
-      const value = Number(input.value);
-
-      if (input.value.trim() === '' || !Number.isFinite(value) || value <= 0) {
-        document.getElementById('entry-error').textContent = 'Please enter a valid number';
-        return;
+    function readValues() {
+      const values = {};
+      for (const type of TYPES) {
+        const raw = document.getElementById('input-' + type).value;
+        const num = Number(raw);
+        values[type] = (raw.trim() !== '' && Number.isFinite(num) && num > 0) ? num : null;
       }
-
-      values[currentType] = value;
-      document.getElementById('value-' + currentType).textContent = value;
-      document.getElementById('btn-' + currentType).classList.add('filled');
-      closeModals();
+      return values;
     }
 
     function openSummary() {
-      if (values.systolic === null || values.diastolic === null || values.heart_rate === null) {
-        alert('Please enter all 3 values before submitting.');
+      const values = readValues();
+      const missing = TYPES.some(type => values[type] === null);
+
+      if (missing) {
+        document.getElementById('entry-error').textContent = 'Please enter all 3 values before submitting.';
         return;
       }
+      document.getElementById('entry-error').textContent = '';
+
       document.getElementById('confirm-systolic').textContent = values.systolic;
       document.getElementById('confirm-diastolic').textContent = values.diastolic;
       document.getElementById('confirm-heart_rate').textContent = values.heart_rate;
@@ -163,19 +136,20 @@
     }
 
     async function submitReadings() {
+      const values = readValues();
       const btn = document.getElementById('confirm-save-btn');
       btn.disabled = true;
       try {
         await window.__saveReadings(values);
         closeModals();
-        showSavedScreen();
+        showSavedScreen(values);
       } catch (err) {
         btn.disabled = false;
         alert('Could not save readings, please try again.\n' + err.message);
       }
     }
 
-    function showSavedScreen() {
+    function showSavedScreen(values) {
       document.getElementById('saved-systolic').textContent = values.systolic;
       document.getElementById('saved-diastolic').textContent = values.diastolic;
       document.getElementById('saved-heart_rate').textContent = values.heart_rate;
@@ -184,22 +158,17 @@
     }
 
     function startNewSession() {
-      values = { systolic: null, diastolic: null, heart_rate: null };
-      ['systolic', 'diastolic', 'heart_rate'].forEach(type => {
-        document.getElementById('value-' + type).textContent = '';
-        document.getElementById('btn-' + type).classList.remove('filled');
+      TYPES.forEach(type => {
+        document.getElementById('input-' + type).value = '';
       });
       document.getElementById('saved-screen').classList.add('hidden');
       document.getElementById('entry-screen').classList.remove('hidden');
     }
 
     function closeModals() {
-      document.getElementById('entry-overlay').classList.remove('active');
       document.getElementById('confirm-overlay').classList.remove('active');
     }
 
-    window.openEntry = openEntry;
-    window.saveEntryValue = saveEntryValue;
     window.openSummary = openSummary;
     window.submitReadings = submitReadings;
     window.startNewSession = startNewSession;

@@ -218,6 +218,69 @@ button {
   background: rgba(27, 175, 122, 0.08);
 }
 
+/* Field rows (inline-editable, no modal) */
+.field-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.6);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.field-row:focus-within {
+  border-color: var(--accent-1);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.field-row .icon-badge {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.field-row .icon-badge svg {
+  width: 22px;
+  height: 22px;
+}
+
+.field-row .field-label {
+  flex: 1 1 auto;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.field-row .field-input {
+  flex: 0 0 auto;
+  width: 64px;
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: right;
+  color: var(--accent-1);
+  padding: 6px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.field-row .field-input:focus {
+  outline: none;
+}
+
+.field-row .field-input::placeholder {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
 /* Icon badge color variants */
 .badge-blue   { background: linear-gradient(135deg, #2a78d6, #4f94e6); }
 .badge-teal   { background: linear-gradient(135deg, #1baf7a, #35c98f); }
