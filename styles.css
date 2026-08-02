@@ -407,6 +407,7 @@ button {
 .badge-orange { background: linear-gradient(135deg, #eb6834, #f08a5f); }
 .badge-violet { background: linear-gradient(135deg, #4a3aa7, #6f5fd6); }
 .badge-gray   { background: linear-gradient(135deg, #8b95a3, #aeb6c0); }
+.badge-pink   { background: linear-gradient(135deg, #d6558c, #e883ac); }
 
 /* Links */
 .back-link {
