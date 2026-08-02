@@ -15,9 +15,9 @@
 <link rel="stylesheet" href="styles.css">
 
 <style>
-  /* These are intentionally NOT named --text-primary etc: the chart plots
-     themselves stay on a fixed light "paper" surface regardless of app
-     theme (their colors were validated against that light surface),
+  /* These are intentionally NOT named --text-primary etc: the chart plot
+     itself stays on a fixed light "paper" surface regardless of app
+     theme (its colors were validated against that light surface),
      while the surrounding chrome (card, table) follows the shared theme. */
   .viz-root {
     --chart-surface:  #fcfcfb;
@@ -26,7 +26,6 @@
     --gridline:       #e1e0d9;
     --axis:           #c3c2b7;
     --series-distance: #2a78d6;
-    --series-time:      #eb6834;
   }
 
   body.viz-root {
@@ -48,29 +47,28 @@
     margin-bottom: 20px;
   }
 
-  .chart-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin: 0 0 12px;
-  }
-
   .state-msg {
     text-align: center;
     color: var(--text-secondary);
     padding: 30px 10px;
   }
 
-  #chart-container-distance, #chart-container-time {
+  #chart-container {
     position: relative;
     width: 100%;
   }
 
-  svg.chart {
+  svg#chart {
     width: 100%;
     height: auto;
     display: block;
     touch-action: none;
+  }
+
+  .point-label {
+    font-size: 12px;
+    font-weight: 600;
+    fill: var(--chart-muted);
   }
 
   .gridline {
@@ -200,18 +198,9 @@
 
         <div id="range-empty-msg" class="state-msg" style="display:none;"></div>
 
-        <div id="charts-wrap">
-          <p class="chart-title">Distance (km)</p>
-          <div id="chart-container-distance">
-            <svg id="chart-distance" class="chart" preserveAspectRatio="none"></svg>
-            <div class="tooltip" id="tooltip-distance"></div>
-          </div>
-
-          <p class="chart-title" style="margin-top:24px;">Time (minutes)</p>
-          <div id="chart-container-time">
-            <svg id="chart-time" class="chart" preserveAspectRatio="none"></svg>
-            <div class="tooltip" id="tooltip-time"></div>
-          </div>
+        <div id="chart-container">
+          <svg id="chart" preserveAspectRatio="none"></svg>
+          <div class="tooltip" id="tooltip"></div>
         </div>
 
         <button class="btn-primary" id="export-btn" onclick="exportCsv()" style="margin-top:16px;">Export to CSV</button>
@@ -263,20 +252,24 @@
       document.getElementById('table-card').style.display = 'block';
     }
 
-    // Generic single-series line chart, reused for the Distance and Time
-    // charts - they're plotted separately (not on one shared axis) since
-    // the two metrics are different units/scales.
-    function renderLineChart({ svgId, containerId, tooltipId, valueKey, hex, unit, yStep }) {
-      const svg = document.getElementById(svgId);
-      const container = document.getElementById(containerId);
+    // Single honestly-scaled axis (Distance, km). Time isn't a second axis -
+    // it's shown as a direct label at each point instead, since distance and
+    // time are different units and a second y-axis would invite reading a
+    // false correlation between two independently-scaled lines.
+    const HEX = '#2a78d6';
+
+    function renderChart() {
+      const svg = document.getElementById('chart');
+      const container = document.getElementById('chart-container');
 
       const W = Math.max(320, Math.round(container.getBoundingClientRect().width));
-      const H = Math.round(Math.min(340, Math.max(240, W * 0.55)));
-      const padL = 46, padR = 44, padT = 24, padB = 60;
+      const H = Math.round(Math.min(420, Math.max(320, W * 0.75)));
+      const padL = 46, padR = 44, padT = 34, padB = 60;
       const plotW = W - padL - padR;
       const plotH = H - padT - padB;
+      const yStep = 1;
 
-      const allValues = sessions.map(s => s[valueKey]);
+      const allValues = sessions.map(s => s.distance);
       let yMin = Math.min(...allValues);
       let yMax = Math.max(...allValues);
       yMin = Math.floor((yMin - yStep) / yStep) * yStep;
@@ -325,30 +318,31 @@
         svg.appendChild(label);
       });
 
-      const points = sessions.map((s, i) => [x(i), y(s[valueKey])]);
+      const points = sessions.map((s, i) => [x(i), y(s.distance)]);
       const path = document.createElementNS(svgns, 'path');
       path.setAttribute('d', points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0] + ' ' + p[1]).join(' '));
       path.setAttribute('class', 'series-line');
-      path.setAttribute('stroke', hex);
+      path.setAttribute('stroke', HEX);
       svg.appendChild(path);
 
-      points.forEach(([px, py]) => {
+      points.forEach(([px, py], i) => {
         const c = document.createElementNS(svgns, 'circle');
         c.setAttribute('cx', px);
         c.setAttribute('cy', py);
         c.setAttribute('r', 5);
-        c.setAttribute('fill', hex);
+        c.setAttribute('fill', HEX);
         c.setAttribute('class', 'marker');
         svg.appendChild(c);
-      });
 
-      const [lastX, lastY] = points[points.length - 1];
-      const last = document.createElementNS(svgns, 'text');
-      last.setAttribute('x', lastX + 9);
-      last.setAttribute('y', lastY + 5);
-      last.setAttribute('class', 'end-label');
-      last.textContent = sessions[sessions.length - 1][valueKey] + ' ' + unit;
-      svg.appendChild(last);
+        // time, shown directly at its point instead of a second axis
+        const label = document.createElementNS(svgns, 'text');
+        label.setAttribute('x', px);
+        label.setAttribute('y', py - 12);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('class', 'point-label');
+        label.textContent = sessions[i].time + ' min';
+        svg.appendChild(label);
+      });
 
       const crosshair = document.createElementNS(svgns, 'line');
       crosshair.setAttribute('y1', padT);
@@ -364,7 +358,7 @@
       hit.setAttribute('fill', 'transparent');
       svg.appendChild(hit);
 
-      const tooltip = document.getElementById(tooltipId);
+      const tooltip = document.getElementById('tooltip');
 
       function showAt(i) {
         const s = sessions[i];
@@ -378,17 +372,26 @@
         dateEl.textContent = formatDate(s.recordedAt) + ' · ' + formatTime(s.recordedAt);
         tooltip.appendChild(dateEl);
 
-        const row = document.createElement('div');
-        row.className = 'tt-row';
-        const key = document.createElement('span');
-        key.className = 'tt-key';
-        key.style.background = hex;
-        const val = document.createElement('span');
-        val.className = 'tt-value';
-        val.textContent = s[valueKey] + ' ' + unit;
-        row.appendChild(key);
-        row.appendChild(val);
-        tooltip.appendChild(row);
+        const distRow = document.createElement('div');
+        distRow.className = 'tt-row';
+        const distKey = document.createElement('span');
+        distKey.className = 'tt-key';
+        distKey.style.background = HEX;
+        const distVal = document.createElement('span');
+        distVal.className = 'tt-value';
+        distVal.textContent = s.distance + ' km';
+        distRow.appendChild(distKey);
+        distRow.appendChild(distVal);
+        tooltip.appendChild(distRow);
+
+        const timeRow = document.createElement('div');
+        timeRow.className = 'tt-row';
+        const timeVal = document.createElement('span');
+        timeVal.className = 'tt-value';
+        timeVal.style.marginLeft = '18px';
+        timeVal.textContent = s.time + ' min';
+        timeRow.appendChild(timeVal);
+        tooltip.appendChild(timeRow);
 
         const rect = svg.getBoundingClientRect();
         const px = (x(i) / W) * rect.width;
@@ -416,17 +419,6 @@
       hit.addEventListener('pointerdown', handlePointer);
       hit.addEventListener('pointermove', handlePointer);
       hit.addEventListener('pointerleave', hide);
-    }
-
-    function renderCharts() {
-      renderLineChart({
-        svgId: 'chart-distance', containerId: 'chart-container-distance', tooltipId: 'tooltip-distance',
-        valueKey: 'distance', hex: '#2a78d6', unit: 'km', yStep: 1
-      });
-      renderLineChart({
-        svgId: 'chart-time', containerId: 'chart-container-time', tooltipId: 'tooltip-time',
-        valueKey: 'time', hex: '#eb6834', unit: 'min', yStep: 5
-      });
     }
 
     function toCsv() {
@@ -459,22 +451,22 @@
         sessions = allSessions.filter(s => s.recordedAt >= cutoff);
       }
 
-      const chartsWrap = document.getElementById('charts-wrap');
+      const chartContainer = document.getElementById('chart-container');
       const exportBtn = document.getElementById('export-btn');
 
       if (sessions.length === 0) {
         emptyMsg.textContent = 'No sessions in this range.';
         emptyMsg.style.display = 'block';
-        chartsWrap.style.display = 'none';
+        chartContainer.style.display = 'none';
         exportBtn.style.display = 'none';
         document.getElementById('table-card').style.display = 'none';
         return;
       }
 
       emptyMsg.style.display = 'none';
-      chartsWrap.style.display = 'block';
+      chartContainer.style.display = 'block';
       exportBtn.style.display = 'block';
-      renderCharts();
+      renderChart();
       renderTable();
     }
 
@@ -496,7 +488,7 @@
     window.addEventListener('resize', () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
-        if (sessions.length > 0) renderCharts();
+        if (sessions.length > 0) renderChart();
       }, 150);
     });
 
