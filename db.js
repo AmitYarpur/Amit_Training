@@ -174,3 +174,34 @@ export async function getBloodPressureSessions(username = getCurrentUser()) {
     };
   });
 }
+
+// --- Weight readings, scoped under the current user (kg) ---------------
+
+function weightCollection(username) {
+  return collection(db, "users", username, "weightReadings");
+}
+
+export async function saveWeight(value, username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  await addDoc(weightCollection(username), {
+    value,
+    recordedAt: serverTimestamp(),
+    recordedAtLocal: new Date().toString()
+  });
+}
+
+// Returns one row per reading: { id, recordedAt: Date, value } sorted oldest first.
+export async function getWeightSessions(username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  const q = query(weightCollection(username), orderBy("recordedAt", "asc"));
+  const snap = await getDocs(q);
+
+  return snap.docs.map(docSnap => {
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      recordedAt: data.recordedAt ? data.recordedAt.toDate() : new Date(data.recordedAtLocal),
+      value: data.value
+    };
+  });
+}

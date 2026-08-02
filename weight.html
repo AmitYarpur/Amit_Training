@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Weight</title>
+<script>
+  if (localStorage.getItem('helth_theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  if (!localStorage.getItem('helth_user')) {
+    window.location.replace('index.html');
+  }
+</script>
+<link rel="stylesheet" href="styles.css">
+
+<style>
+  .card.hidden { display: none; }
+
+  #submit-btn {
+    margin-top: 22px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="page">
+
+    <!-- Screen 1: enter weight -->
+    <div class="card" id="entry-screen">
+      <p class="eyebrow">Weight</p>
+      <h1 class="headline" id="datetime-headline" style="font-size:18px;">Today is the ...</h1>
+
+      <div class="tile-list" style="margin-top:18px;">
+        <label class="field-row">
+          <span class="icon-badge badge-teal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="12" cy="13" r="3.2"/><path d="M12 8v1.2"/></svg>
+          </span>
+          <span class="field-label">Weight (kg)</span>
+          <input class="field-input" type="number" id="input-weight" inputmode="decimal" step="0.1" placeholder="--">
+        </label>
+      </div>
+
+      <div class="error" id="entry-error" style="text-align:center; margin-top:10px;"></div>
+
+      <button class="btn-primary" id="submit-btn" onclick="openSummary()">Submit</button>
+
+      <a class="back-link" href="index.html#menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+        Back to home
+      </a>
+    </div>
+
+    <!-- Screen 2: approved value shown after saving -->
+    <div class="card hidden" id="saved-screen" style="text-align:center;">
+      <div class="checkmark-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h2 class="headline" style="text-align:center;">Saved</h2>
+      <div class="summary-row"><span>Weight</span><span class="value" id="saved-weight"></span></div>
+
+      <button class="btn-primary" onclick="startNewSession()" style="margin-top:22px;">Log another reading</button>
+      <a class="back-link" href="index.html#menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+        Back to home
+      </a>
+    </div>
+
+  </div>
+
+  <!-- Are you sure -->
+  <div class="overlay" id="confirm-overlay">
+    <div class="modal">
+      <h2>Are you sure?</h2>
+      <div class="summary-row"><span>Weight</span><span class="value" id="confirm-weight"></span></div>
+      <div class="row" style="margin-top:20px;">
+        <button class="btn-secondary" onclick="closeModals()">Edit</button>
+        <button class="btn-primary" id="confirm-save-btn" onclick="submitWeight()">Yes, Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { saveWeight, applyUserTheme } from './db.js';
+    window.__saveWeight = saveWeight;
+    applyUserTheme();
+  </script>
+
+  <script>
+    function updateHeadline() {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const timeStr = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('datetime-headline').textContent = `Today is the ${dateStr} and ${timeStr}`;
+    }
+    updateHeadline();
+    setInterval(updateHeadline, 1000);
+
+    function readValue() {
+      const raw = document.getElementById('input-weight').value;
+      const num = Number(raw);
+      return (raw.trim() !== '' && Number.isFinite(num) && num > 0) ? num : null;
+    }
+
+    function openSummary() {
+      const value = readValue();
+
+      if (value === null) {
+        document.getElementById('entry-error').textContent = 'Please enter your weight before submitting.';
+        return;
+      }
+      document.getElementById('entry-error').textContent = '';
+
+      document.getElementById('confirm-weight').textContent = value + ' kg';
+      document.getElementById('confirm-overlay').classList.add('active');
+    }
+
+    async function submitWeight() {
+      const value = readValue();
+      const btn = document.getElementById('confirm-save-btn');
+      btn.disabled = true;
+      try {
+        await window.__saveWeight(value);
+        closeModals();
+        showSavedScreen(value);
+      } catch (err) {
+        btn.disabled = false;
+        alert('Could not save weight, please try again.\n' + err.message);
+      }
+    }
+
+    function showSavedScreen(value) {
+      document.getElementById('saved-weight').textContent = value + ' kg';
+      document.getElementById('entry-screen').classList.add('hidden');
+      document.getElementById('saved-screen').classList.remove('hidden');
+    }
+
+    function startNewSession() {
+      document.getElementById('input-weight').value = '';
+      document.getElementById('saved-screen').classList.add('hidden');
+      document.getElementById('entry-screen').classList.remove('hidden');
+    }
+
+    function closeModals() {
+      document.getElementById('confirm-overlay').classList.remove('active');
+    }
+
+    window.openSummary = openSummary;
+    window.submitWeight = submitWeight;
+    window.startNewSession = startNewSession;
+    window.closeModals = closeModals;
+  </script>
+
+</body>
+</html>
