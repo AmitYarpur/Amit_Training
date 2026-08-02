@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blood Pressure Report</title>
 <link rel="stylesheet" href="styles.css">
+<script>
+  if (!localStorage.getItem('helth_user')) {
+    window.location.replace('index.html');
+  }
+</script>
 
 <style>
   .viz-root {
@@ -187,6 +192,7 @@
   <div class="wrap">
     <p class="eyebrow">Reports</p>
     <h1 class="headline">Blood Pressure Report</h1>
+    <p class="subtext" style="margin:-4px 0 0;" id="report-user-line"></p>
     <a class="back-link" href="reports.html">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
       Back to reports
@@ -529,6 +535,8 @@
     });
 
     async function init() {
+      document.getElementById('report-user-line').textContent = 'for ' + localStorage.getItem('helth_user');
+
       try {
         allSessions = await getBloodPressureSessions();
       } catch (err) {

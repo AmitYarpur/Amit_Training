@@ -319,6 +319,54 @@ button {
   border-color: transparent;
 }
 
+/* Auth form */
+.text-input {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  color: var(--text-primary);
+  background: #fafbfc;
+  margin-bottom: 12px;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: var(--accent-1);
+}
+
+.auth-toggle {
+  text-align: center;
+  margin-top: 18px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.auth-toggle a {
+  color: var(--accent-1);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.user-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -6px 0 22px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.user-badge a {
+  color: var(--accent-1);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
 /* Icon badge color variants */
 .badge-blue   { background: linear-gradient(135deg, #2a78d6, #4f94e6); }
 .badge-teal   { background: linear-gradient(135deg, #1baf7a, #35c98f); }

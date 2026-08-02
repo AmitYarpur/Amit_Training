@@ -38,17 +38,42 @@
 
   <div class="page">
 
-    <div id="welcome-screen" class="card screen active">
+    <!-- Screen 0: login / sign up -->
+    <div id="auth-screen" class="card screen">
       <div class="welcome-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l1.5-4.5 3 9 2-11 2 6.5h6.5"/></svg>
       </div>
       <p class="eyebrow">Helth</p>
-      <h1 class="headline">Wellcome Amit</h1>
+      <h1 class="headline" id="auth-title">Log In</h1>
+      <p class="subtext" id="auth-subtext">Welcome back. Enter your username and password.</p>
+
+      <input class="text-input" id="auth-username" type="text" placeholder="Username" autocomplete="username">
+      <input class="text-input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="error" id="auth-error" style="text-align:center; min-height:18px; margin-bottom:8px;"></div>
+
+      <button class="btn-primary" id="auth-submit-btn" onclick="submitAuth()">Log In</button>
+
+      <p class="auth-toggle" id="toggle-to-signup">New here? <a onclick="setAuthMode('signup')">Sign Up</a></p>
+      <p class="auth-toggle" id="toggle-to-login" style="display:none;">Already have an account? <a onclick="setAuthMode('login')">Log In</a></p>
+    </div>
+
+    <!-- Screen 1: welcome -->
+    <div id="welcome-screen" class="card screen">
+      <div class="welcome-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l1.5-4.5 3 9 2-11 2 6.5h6.5"/></svg>
+      </div>
+      <p class="eyebrow">Helth</p>
+      <h1 class="headline" id="welcome-headline">Wellcome</h1>
       <p class="subtext">Your personal health tracker. Log readings, watch trends, stay on top of it.</p>
       <button class="btn-primary" id="start-btn" onclick="showScreen('menu-screen')">Start</button>
     </div>
 
+    <!-- Screen 2: menu -->
     <div id="menu-screen" class="card screen">
+      <div class="user-badge">
+        <span>Signed in as <strong id="user-badge-name"></strong></span>
+        <a onclick="doLogout()">Log out</a>
+      </div>
       <h2 class="headline">What do you want to do</h2>
       <div class="tile-list">
         <button class="tile-btn" onclick="window.location.href='blood-pressure.html'">
@@ -95,7 +120,20 @@
 
   </div>
 
+  <script type="module">
+    import { login, signup } from './db.js';
+    window.__login = login;
+    window.__signup = signup;
+  </script>
+
   <script>
+    const SESSION_KEY = 'helth_user';
+    let authMode = 'login';
+
+    function getLocalUser() {
+      return localStorage.getItem(SESSION_KEY);
+    }
+
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
       document.getElementById(id).classList.add('active');
@@ -105,8 +143,78 @@
       alert(feature + ' - coming soon');
     }
 
-    if (window.location.hash === '#menu') {
-      showScreen('menu-screen');
+    function setAuthMode(mode) {
+      authMode = mode;
+      document.getElementById('auth-error').textContent = '';
+      document.getElementById('auth-username').value = '';
+      document.getElementById('auth-password').value = '';
+
+      if (mode === 'login') {
+        document.getElementById('auth-title').textContent = 'Log In';
+        document.getElementById('auth-subtext').textContent = 'Welcome back. Enter your username and password.';
+        document.getElementById('auth-submit-btn').textContent = 'Log In';
+        document.getElementById('toggle-to-signup').style.display = 'block';
+        document.getElementById('toggle-to-login').style.display = 'none';
+      } else {
+        document.getElementById('auth-title').textContent = 'Sign Up';
+        document.getElementById('auth-subtext').textContent = 'Choose a username and password. Anyone can join.';
+        document.getElementById('auth-submit-btn').textContent = 'Sign Up';
+        document.getElementById('toggle-to-signup').style.display = 'none';
+        document.getElementById('toggle-to-login').style.display = 'block';
+      }
+    }
+
+    async function submitAuth() {
+      const username = document.getElementById('auth-username').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const errorEl = document.getElementById('auth-error');
+      errorEl.textContent = '';
+
+      if (!username || !password) {
+        errorEl.textContent = 'Please enter a username and password.';
+        return;
+      }
+
+      const btn = document.getElementById('auth-submit-btn');
+      btn.disabled = true;
+      try {
+        const action = authMode === 'login' ? window.__login : window.__signup;
+        await action(username, password);
+        enterApp();
+      } catch (err) {
+        errorEl.textContent = err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function doLogout() {
+      localStorage.removeItem(SESSION_KEY);
+      window.location.href = 'index.html';
+    }
+
+    function enterApp() {
+      const username = getLocalUser();
+      document.getElementById('welcome-headline').textContent = 'Wellcome ' + username;
+      document.getElementById('user-badge-name').textContent = username;
+
+      if (window.location.hash === '#menu') {
+        showScreen('menu-screen');
+      } else {
+        showScreen('welcome-screen');
+      }
+    }
+
+    window.showScreen = showScreen;
+    window.comingSoon = comingSoon;
+    window.setAuthMode = setAuthMode;
+    window.submitAuth = submitAuth;
+    window.doLogout = doLogout;
+
+    if (getLocalUser()) {
+      enterApp();
+    } else {
+      showScreen('auth-screen');
     }
   </script>
 
