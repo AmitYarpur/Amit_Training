@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Blood Pressure Report</title>
 <link rel="stylesheet" href="styles.css">
 
@@ -87,24 +87,24 @@
 
   .axis-text {
     fill: var(--text-muted);
-    font-size: 10px;
+    font-size: 15px;
   }
 
   .series-line {
     fill: none;
-    stroke-width: 2;
+    stroke-width: 3;
     stroke-linejoin: round;
     stroke-linecap: round;
   }
 
   .marker {
     stroke: var(--surface-1);
-    stroke-width: 2;
+    stroke-width: 2.5;
   }
 
   .end-label {
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     fill: var(--text-primary);
   }
 
@@ -120,10 +120,10 @@
     pointer-events: none;
     background: var(--text-primary);
     color: #fff;
-    border-radius: 8px;
-    padding: 8px 10px;
-    font-size: 12px;
-    line-height: 1.5;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    line-height: 1.6;
     display: none;
     white-space: nowrap;
     transform: translate(-50%, -110%);
@@ -132,26 +132,27 @@
 
   .tooltip .tt-date {
     color: #ccc;
-    font-size: 11px;
-    margin-bottom: 4px;
+    font-size: 12px;
+    margin-bottom: 5px;
   }
 
   .tooltip .tt-row {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 7px;
   }
 
   .tooltip .tt-key {
-    width: 10px;
-    height: 2px;
+    width: 12px;
+    height: 3px;
     display: inline-block;
+    border-radius: 2px;
   }
 
   .tooltip .tt-value {
     font-weight: 700;
     margin-left: auto;
-    padding-left: 10px;
+    padding-left: 12px;
   }
 
   /* Table */
@@ -195,14 +196,24 @@
       <div id="state-msg" class="state-msg">Loading readings…</div>
 
       <div id="content" style="display:none;">
+        <div class="range-filter" id="range-filter">
+          <button class="range-pill" data-range="7">Last Week</button>
+          <button class="range-pill" data-range="30">Last Month</button>
+          <button class="range-pill" data-range="90">Last 3 Months</button>
+          <button class="range-pill" data-range="365">Last Year</button>
+          <button class="range-pill" data-range="all">All Time</button>
+        </div>
+
         <div class="legend">
           <div class="legend-item"><span class="legend-key" style="background:var(--series-systolic)"></span>Systolic</div>
           <div class="legend-item"><span class="legend-key" style="background:var(--series-diastolic)"></span>Diastolic</div>
           <div class="legend-item"><span class="legend-key" style="background:var(--series-heart)"></span>Heart rate</div>
         </div>
 
+        <div id="range-empty-msg" class="state-msg" style="display:none;"></div>
+
         <div id="chart-container">
-          <svg id="chart" viewBox="0 0 680 300" preserveAspectRatio="none"></svg>
+          <svg id="chart" preserveAspectRatio="none"></svg>
           <div class="tooltip" id="tooltip"></div>
         </div>
 
@@ -231,7 +242,9 @@
       { key: 'heart_rate', label: 'Heart rate', color: 'var(--series-heart)',     hex: '#1baf7a' }
     ];
 
+    let allSessions = [];
     let sessions = [];
+    let currentRangeDays = 'all';
 
     function formatDate(d) {
       return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -266,8 +279,14 @@
 
     function renderChart() {
       const svg = document.getElementById('chart');
-      const W = 680, H = 300;
-      const padL = 34, padR = 60, padT = 16, padB = 28;
+      const container = document.getElementById('chart-container');
+
+      // Size the SVG in real CSS pixels (1 viewBox unit = 1 px) so text and
+      // markers stay legible on narrow phone screens instead of shrinking
+      // with a fixed-ratio viewBox.
+      const W = Math.max(320, Math.round(container.getBoundingClientRect().width));
+      const H = Math.round(Math.min(420, Math.max(320, W * 0.75)));
+      const padL = 46, padR = 44, padT = 24, padB = 60;
       const plotW = W - padL - padR;
       const plotH = H - padT - padB;
 
@@ -308,15 +327,15 @@
         svg.appendChild(label);
       }
 
-      // x-axis labels, sparse to avoid crowding
-      const labelEvery = Math.max(1, Math.ceil(n / 6));
+      // x-axis labels, sparse to avoid crowding, rotated so they never collide
+      const maxLabels = Math.max(3, Math.floor(plotW / 60));
+      const labelEvery = Math.max(1, Math.ceil(n / maxLabels));
       sessions.forEach((s, i) => {
         if (i % labelEvery !== 0 && i !== n - 1) return;
         const label = document.createElementNS(svgns, 'text');
-        label.setAttribute('x', x(i));
-        label.setAttribute('y', H - 8);
-        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('text-anchor', 'end');
         label.setAttribute('class', 'axis-text');
+        label.setAttribute('transform', `translate(${x(i)} ${H - padB + 18}) rotate(-40)`);
         label.textContent = formatDate(s.recordedAt);
         svg.appendChild(label);
       });
@@ -338,19 +357,19 @@
           const c = document.createElementNS(svgns, 'circle');
           c.setAttribute('cx', px);
           c.setAttribute('cy', py);
-          c.setAttribute('r', 4);
+          c.setAttribute('r', 5);
           c.setAttribute('fill', sr.hex);
           c.setAttribute('class', 'marker');
           svg.appendChild(c);
         });
 
-        // end label
+        // end label: value only, identity already carried by the legend/line color
         const [lastX, lastY] = points[points.length - 1];
         const last = document.createElementNS(svgns, 'text');
-        last.setAttribute('x', lastX + 8);
-        last.setAttribute('y', lastY + 4);
+        last.setAttribute('x', lastX + 9);
+        last.setAttribute('y', lastY + 5);
         last.setAttribute('class', 'end-label');
-        last.textContent = sr.label + ' ' + sessions[sessions.length - 1][sr.key];
+        last.textContent = sessions.filter(s => s[sr.key] != null).slice(-1)[0][sr.key];
         svg.appendChild(last);
       });
 
@@ -456,23 +475,76 @@
       URL.revokeObjectURL(url);
     };
 
+    function applyRange() {
+      const emptyMsg = document.getElementById('range-empty-msg');
+
+      if (currentRangeDays === 'all') {
+        sessions = allSessions;
+      } else {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - currentRangeDays);
+        sessions = allSessions.filter(s => s.recordedAt >= cutoff);
+      }
+
+      const chartContainer = document.getElementById('chart-container');
+      const exportBtn = document.getElementById('export-btn');
+
+      if (sessions.length === 0) {
+        emptyMsg.textContent = 'No readings in this range.';
+        emptyMsg.style.display = 'block';
+        chartContainer.style.display = 'none';
+        exportBtn.style.display = 'none';
+        document.getElementById('table-card').style.display = 'none';
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+      chartContainer.style.display = 'block';
+      exportBtn.style.display = 'block';
+      renderChart();
+      renderTable();
+    }
+
+    function setupRangeFilter() {
+      const buttons = Array.from(document.querySelectorAll('.range-pill'));
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const range = btn.dataset.range;
+          currentRangeDays = range === 'all' ? 'all' : Number(range);
+          buttons.forEach(b => b.classList.toggle('active', b === btn));
+          applyRange();
+        });
+      });
+      // default to "All Time" so existing readings are visible right away
+      const defaultBtn = buttons.find(b => b.dataset.range === 'all');
+      defaultBtn.classList.add('active');
+    }
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (sessions.length > 0) renderChart();
+      }, 150);
+    });
+
     async function init() {
       try {
-        sessions = await getBloodPressureSessions();
+        allSessions = await getBloodPressureSessions();
       } catch (err) {
         document.getElementById('state-msg').textContent = 'Could not load readings: ' + err.message;
         return;
       }
 
-      if (sessions.length === 0) {
+      if (allSessions.length === 0) {
         document.getElementById('state-msg').textContent = 'No blood pressure readings logged yet.';
         return;
       }
 
       document.getElementById('state-msg').style.display = 'none';
       document.getElementById('content').style.display = 'block';
-      renderChart();
-      renderTable();
+      setupRangeFilter();
+      applyRange();
     }
 
     init();

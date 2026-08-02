@@ -281,6 +281,44 @@ button {
   font-weight: 600;
 }
 
+/* Date range filter (pill row) */
+.range-filter {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 18px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.range-filter::-webkit-scrollbar {
+  display: none;
+}
+
+.range-pill {
+  flex: 0 0 auto;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border-hairline);
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.range-pill:active {
+  transform: scale(0.96);
+}
+
+.range-pill.active {
+  background: var(--accent-gradient);
+  color: #fff;
+  border-color: transparent;
+}
+
 /* Icon badge color variants */
 .badge-blue   { background: linear-gradient(135deg, #2a78d6, #4f94e6); }
 .badge-teal   { background: linear-gradient(135deg, #1baf7a, #35c98f); }
