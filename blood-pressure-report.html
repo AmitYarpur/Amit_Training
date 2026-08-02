@@ -245,7 +245,8 @@
   </div>
 
   <script type="module">
-    import { getBloodPressureSessions } from './db.js';
+    import { getBloodPressureSessions, applyUserTheme } from './db.js';
+    applyUserTheme();
 
     const SERIES = [
       { key: 'systolic',   label: 'Systolic',   color: 'var(--series-systolic)',  hex: '#2a78d6' },

@@ -134,21 +134,15 @@
   </div>
 
   <script type="module">
-    import { login, signup, getThemePreference } from './db.js';
+    import { login, signup, applyUserTheme } from './db.js';
     window.__login = login;
     window.__signup = signup;
-    window.__getThemePreference = getThemePreference;
+    window.__applyUserTheme = applyUserTheme;
 
-    // If a page load starts out already-logged-in (module executes after the
-    // classic script below has already shown the welcome/menu screen from
-    // cached data), reconcile the theme from Firestore in case it changed
-    // on another device.
-    const loggedInUser = localStorage.getItem('helth_user');
-    if (loggedInUser && window.__applyTheme) {
-      getThemePreference(loggedInUser).then(theme => {
-        if (theme) window.__applyTheme(theme);
-      }).catch(() => {});
-    }
+    // Reconciles the theme against Firestore for the case where the page
+    // loads already-logged-in (module executes after the classic script
+    // below has already shown the welcome/menu screen from cached data).
+    applyUserTheme();
   </script>
 
   <script>
@@ -215,16 +209,8 @@
 
     function doLogout() {
       localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem('helth_theme');
       window.location.href = 'index.html';
-    }
-
-    function applyTheme(theme) {
-      if (theme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-      } else {
-        document.documentElement.removeAttribute('data-theme');
-      }
-      localStorage.setItem('helth_theme', theme);
     }
 
     async function enterApp() {
@@ -232,10 +218,9 @@
       document.getElementById('welcome-headline').textContent = 'Wellcome ' + username;
       document.getElementById('user-badge-name').textContent = username;
 
-      if (window.__getThemePreference) {
+      if (window.__applyUserTheme) {
         try {
-          const theme = await window.__getThemePreference(username);
-          if (theme) applyTheme(theme);
+          await window.__applyUserTheme();
         } catch (e) {
           // keep whatever theme is already applied
         }
@@ -253,7 +238,6 @@
     window.setAuthMode = setAuthMode;
     window.submitAuth = submitAuth;
     window.doLogout = doLogout;
-    window.__applyTheme = applyTheme;
 
     if (getLocalUser()) {
       enterApp();

@@ -101,8 +101,9 @@
   </div>
 
   <script type="module">
-    import { saveReadings } from './db.js';
+    import { saveReadings, applyUserTheme } from './db.js';
     window.__saveReadings = saveReadings;
+    applyUserTheme();
   </script>
 
   <script>

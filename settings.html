@@ -69,9 +69,17 @@
   </div>
 
   <script type="module">
-    import { getThemePreference, saveThemePreference } from './db.js';
-    window.__getThemePreference = getThemePreference;
+    import { saveThemePreference, applyUserTheme } from './db.js';
     window.__saveThemePreference = saveThemePreference;
+    window.__applyUserTheme = applyUserTheme;
+
+    // Reconciles against Firestore (correcting any stale/leftover cached
+    // value, e.g. from a previous account on this device) then reflects
+    // the result in the pill selection.
+    applyUserTheme().then(() => {
+      const resolved = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+      window.__markActivePill(resolved);
+    });
   </script>
 
   <script>
@@ -108,18 +116,12 @@
       btn.addEventListener('click', () => chooseTheme(btn.dataset.themeChoice));
     });
 
-    // Reflect whatever is already applied (from cache) immediately...
+    // Reflect whatever is already applied (from cache) immediately; the
+    // module script above reconciles against Firestore shortly after.
     const cachedTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
     markActivePill(cachedTheme);
 
-    // ...then reconcile with the saved value in Firestore in case it
-    // changed on another device.
-    window.__getThemePreference().then(theme => {
-      if (theme && theme !== cachedTheme) {
-        applyTheme(theme);
-        markActivePill(theme);
-      }
-    }).catch(() => {});
+    window.__markActivePill = markActivePill;
   </script>
 
 </body>

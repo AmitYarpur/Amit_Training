@@ -89,6 +89,9 @@ function setCurrentUser(username) {
 
 export function logout() {
   localStorage.removeItem(SESSION_KEY);
+  // Avoid the next person to use this device/browser seeing a flash of
+  // whoever was previously signed in's theme before it's reconciled.
+  localStorage.removeItem(THEME_KEY);
 }
 
 // --- Per-user settings (currently just light/dark appearance) ---------
@@ -108,6 +111,30 @@ export async function getThemePreference(username = getCurrentUser()) {
   if (!username) return null;
   const snap = await getDoc(userDocRef(username));
   return snap.exists() ? (snap.data().theme || null) : null;
+}
+
+// Applies the signed-in user's saved theme to the page, correcting any
+// stale/leftover value in the shared localStorage cache (e.g. from a
+// previous account on the same device). No-op if nobody is logged in.
+// Call this on every page after the instant cached-theme bootstrap runs,
+// so each page reconciles with Firestore instead of trusting the cache.
+export async function applyUserTheme() {
+  const username = getCurrentUser();
+  if (!username) return;
+
+  let theme = "light";
+  try {
+    theme = (await getThemePreference(username)) || "light";
+  } catch (e) {
+    return; // keep whatever's already applied rather than fail loudly here
+  }
+
+  if (theme === "dark") {
+    document.documentElement.setAttribute("data-theme", "dark");
+  } else {
+    document.documentElement.removeAttribute("data-theme");
+  }
+  localStorage.setItem(THEME_KEY, theme);
 }
 
 // --- Blood pressure readings, scoped under the current user -----------
