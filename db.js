@@ -205,3 +205,38 @@ export async function getWeightSessions(username = getCurrentUser()) {
     };
   });
 }
+
+// --- Cardio training sessions (running, walking), scoped under the ----
+// --- current user - distance in km, time in minutes -------------------
+
+function trainingCollection(kind, username) {
+  return collection(db, "users", username, kind + "Sessions");
+}
+
+// values: { distance: number, time: number }
+export async function saveTrainingSession(kind, values, username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  await addDoc(trainingCollection(kind, username), {
+    distance: values.distance,
+    time: values.time,
+    recordedAt: serverTimestamp(),
+    recordedAtLocal: new Date().toString()
+  });
+}
+
+// Returns one row per session: { id, recordedAt: Date, distance, time } sorted oldest first.
+export async function getTrainingSessions(kind, username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  const q = query(trainingCollection(kind, username), orderBy("recordedAt", "asc"));
+  const snap = await getDocs(q);
+
+  return snap.docs.map(docSnap => {
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      recordedAt: data.recordedAt ? data.recordedAt.toDate() : new Date(data.recordedAtLocal),
+      distance: data.distance,
+      time: data.time
+    };
+  });
+}

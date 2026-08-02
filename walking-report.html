@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Walking Report</title>
+<script>
+  if (localStorage.getItem('helth_theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  if (!localStorage.getItem('helth_user')) {
+    window.location.replace('index.html');
+  }
+</script>
+<link rel="stylesheet" href="styles.css">
+
+<style>
+  /* These are intentionally NOT named --text-primary etc: the chart plots
+     themselves stay on a fixed light "paper" surface regardless of app
+     theme (their colors were validated against that light surface),
+     while the surrounding chrome (card, table) follows the shared theme. */
+  .viz-root {
+    --chart-surface:  #fcfcfb;
+    --chart-ink:      #0b0b0b;
+    --chart-muted:    #898781;
+    --gridline:       #e1e0d9;
+    --axis:           #c3c2b7;
+    --series-distance: #2a78d6;
+    --series-time:      #eb6834;
+  }
+
+  body.viz-root {
+    padding: 20px;
+    display: block;
+  }
+
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .wrap h1.headline {
+    font-size: 22px;
+    margin: 4px 0 4px;
+  }
+
+  .card {
+    margin-bottom: 20px;
+  }
+
+  .chart-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 12px;
+  }
+
+  .state-msg {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 30px 10px;
+  }
+
+  #chart-container-distance, #chart-container-time {
+    position: relative;
+    width: 100%;
+  }
+
+  svg.chart {
+    width: 100%;
+    height: auto;
+    display: block;
+    touch-action: none;
+  }
+
+  .gridline {
+    stroke: var(--gridline);
+    stroke-width: 1;
+  }
+
+  .axis-text {
+    fill: var(--chart-muted);
+    font-size: 15px;
+  }
+
+  .series-line {
+    fill: none;
+    stroke-width: 3;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+
+  .marker {
+    stroke: var(--chart-surface);
+    stroke-width: 2.5;
+  }
+
+  .end-label {
+    font-size: 16px;
+    font-weight: 700;
+    fill: var(--chart-ink);
+  }
+
+  .crosshair-line {
+    stroke: var(--axis);
+    stroke-width: 1;
+    pointer-events: none;
+    display: none;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--chart-ink);
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    display: none;
+    white-space: nowrap;
+    transform: translate(-50%, -110%);
+    z-index: 5;
+  }
+
+  .tooltip .tt-date {
+    color: #ccc;
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+
+  .tooltip .tt-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .tooltip .tt-key {
+    width: 12px;
+    height: 3px;
+    display: inline-block;
+    border-radius: 2px;
+  }
+
+  .tooltip .tt-value {
+    font-weight: 700;
+    margin-left: auto;
+    padding-left: 12px;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--gridline);
+    font-variant-numeric: tabular-nums;
+  }
+
+  th {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+
+  td.num {
+    color: var(--text-primary);
+  }
+
+</style>
+</head>
+<body class="viz-root">
+
+  <div class="wrap">
+    <p class="eyebrow">Reports</p>
+    <h1 class="headline">Walking Report</h1>
+    <p class="subtext" style="margin:-4px 0 0;" id="report-user-line"></p>
+    <a class="back-link" href="reports.html">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+      Back to reports
+    </a>
+
+    <div class="card" style="margin-top:20px;">
+      <div id="state-msg" class="state-msg">Loading sessions…</div>
+
+      <div id="content" style="display:none;">
+        <div class="range-filter" id="range-filter">
+          <button class="range-pill" data-range="7">Last Week</button>
+          <button class="range-pill" data-range="30">Last Month</button>
+          <button class="range-pill" data-range="90">Last 3 Months</button>
+          <button class="range-pill" data-range="365">Last Year</button>
+          <button class="range-pill" data-range="all">All Time</button>
+        </div>
+
+        <div id="range-empty-msg" class="state-msg" style="display:none;"></div>
+
+        <div id="charts-wrap">
+          <p class="chart-title">Distance (km)</p>
+          <div id="chart-container-distance">
+            <svg id="chart-distance" class="chart" preserveAspectRatio="none"></svg>
+            <div class="tooltip" id="tooltip-distance"></div>
+          </div>
+
+          <p class="chart-title" style="margin-top:24px;">Time (minutes)</p>
+          <div id="chart-container-time">
+            <svg id="chart-time" class="chart" preserveAspectRatio="none"></svg>
+            <div class="tooltip" id="tooltip-time"></div>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="export-btn" onclick="exportCsv()" style="margin-top:16px;">Export to CSV</button>
+      </div>
+    </div>
+
+    <div class="card" id="table-card" style="display:none;">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Time</th><th>Distance (km)</th><th>Duration (min)</th></tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { getTrainingSessions, applyUserTheme } from './db.js';
+    applyUserTheme();
+
+    let allSessions = [];
+    let sessions = [];
+    let currentRangeDays = 'all';
+
+    function formatDate(d) {
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+    function formatTime(d) {
+      return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+      // newest first for reading convenience
+      [...sessions].reverse().forEach(s => {
+        const tr = document.createElement('tr');
+        const cells = [formatDate(s.recordedAt), formatTime(s.recordedAt), s.distance, s.time];
+        cells.forEach((val, i) => {
+          const td = document.createElement('td');
+          if (i >= 2) td.classList.add('num');
+          td.textContent = String(val);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      document.getElementById('table-card').style.display = 'block';
+    }
+
+    // Generic single-series line chart, reused for the Distance and Time
+    // charts - they're plotted separately (not on one shared axis) since
+    // the two metrics are different units/scales.
+    function renderLineChart({ svgId, containerId, tooltipId, valueKey, hex, unit, yStep }) {
+      const svg = document.getElementById(svgId);
+      const container = document.getElementById(containerId);
+
+      const W = Math.max(320, Math.round(container.getBoundingClientRect().width));
+      const H = Math.round(Math.min(340, Math.max(240, W * 0.55)));
+      const padL = 46, padR = 44, padT = 24, padB = 60;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      const allValues = sessions.map(s => s[valueKey]);
+      let yMin = Math.min(...allValues);
+      let yMax = Math.max(...allValues);
+      yMin = Math.floor((yMin - yStep) / yStep) * yStep;
+      yMax = Math.ceil((yMax + yStep) / yStep) * yStep;
+      if (yMin === yMax) { yMin -= yStep; yMax += yStep; }
+      if (yMin < 0) yMin = 0;
+
+      const n = sessions.length;
+      const x = i => n === 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
+      const y = v => padT + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+
+      const svgns = 'http://www.w3.org/2000/svg';
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.innerHTML = '';
+
+      const steps = 4;
+      for (let i = 0; i <= steps; i++) {
+        const v = yMin + (i / steps) * (yMax - yMin);
+        const gy = y(v);
+        const line = document.createElementNS(svgns, 'line');
+        line.setAttribute('x1', padL);
+        line.setAttribute('x2', W - padR);
+        line.setAttribute('y1', gy);
+        line.setAttribute('y2', gy);
+        line.setAttribute('class', 'gridline');
+        svg.appendChild(line);
+
+        const label = document.createElementNS(svgns, 'text');
+        label.setAttribute('x', padL - 6);
+        label.setAttribute('y', gy + 3);
+        label.setAttribute('text-anchor', 'end');
+        label.setAttribute('class', 'axis-text');
+        label.textContent = Math.round(v * 10) / 10;
+        svg.appendChild(label);
+      }
+
+      const maxLabels = Math.max(3, Math.floor(plotW / 60));
+      const labelEvery = Math.max(1, Math.ceil(n / maxLabels));
+      sessions.forEach((s, i) => {
+        if (i % labelEvery !== 0 && i !== n - 1) return;
+        const label = document.createElementNS(svgns, 'text');
+        label.setAttribute('text-anchor', 'end');
+        label.setAttribute('class', 'axis-text');
+        label.setAttribute('transform', `translate(${x(i)} ${H - padB + 18}) rotate(-40)`);
+        label.textContent = formatDate(s.recordedAt);
+        svg.appendChild(label);
+      });
+
+      const points = sessions.map((s, i) => [x(i), y(s[valueKey])]);
+      const path = document.createElementNS(svgns, 'path');
+      path.setAttribute('d', points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0] + ' ' + p[1]).join(' '));
+      path.setAttribute('class', 'series-line');
+      path.setAttribute('stroke', hex);
+      svg.appendChild(path);
+
+      points.forEach(([px, py]) => {
+        const c = document.createElementNS(svgns, 'circle');
+        c.setAttribute('cx', px);
+        c.setAttribute('cy', py);
+        c.setAttribute('r', 5);
+        c.setAttribute('fill', hex);
+        c.setAttribute('class', 'marker');
+        svg.appendChild(c);
+      });
+
+      const [lastX, lastY] = points[points.length - 1];
+      const last = document.createElementNS(svgns, 'text');
+      last.setAttribute('x', lastX + 9);
+      last.setAttribute('y', lastY + 5);
+      last.setAttribute('class', 'end-label');
+      last.textContent = sessions[sessions.length - 1][valueKey] + ' ' + unit;
+      svg.appendChild(last);
+
+      const crosshair = document.createElementNS(svgns, 'line');
+      crosshair.setAttribute('y1', padT);
+      crosshair.setAttribute('y2', H - padB);
+      crosshair.setAttribute('class', 'crosshair-line');
+      svg.appendChild(crosshair);
+
+      const hit = document.createElementNS(svgns, 'rect');
+      hit.setAttribute('x', padL);
+      hit.setAttribute('y', padT);
+      hit.setAttribute('width', plotW);
+      hit.setAttribute('height', plotH);
+      hit.setAttribute('fill', 'transparent');
+      svg.appendChild(hit);
+
+      const tooltip = document.getElementById(tooltipId);
+
+      function showAt(i) {
+        const s = sessions[i];
+        crosshair.setAttribute('x1', x(i));
+        crosshair.setAttribute('x2', x(i));
+        crosshair.style.display = 'block';
+
+        tooltip.innerHTML = '';
+        const dateEl = document.createElement('div');
+        dateEl.className = 'tt-date';
+        dateEl.textContent = formatDate(s.recordedAt) + ' · ' + formatTime(s.recordedAt);
+        tooltip.appendChild(dateEl);
+
+        const row = document.createElement('div');
+        row.className = 'tt-row';
+        const key = document.createElement('span');
+        key.className = 'tt-key';
+        key.style.background = hex;
+        const val = document.createElement('span');
+        val.className = 'tt-value';
+        val.textContent = s[valueKey] + ' ' + unit;
+        row.appendChild(key);
+        row.appendChild(val);
+        tooltip.appendChild(row);
+
+        const rect = svg.getBoundingClientRect();
+        const px = (x(i) / W) * rect.width;
+        tooltip.style.left = px + 'px';
+        tooltip.style.top = '0px';
+        tooltip.style.display = 'block';
+      }
+
+      function hide() {
+        crosshair.style.display = 'none';
+        tooltip.style.display = 'none';
+      }
+
+      function handlePointer(e) {
+        const rect = svg.getBoundingClientRect();
+        const relX = ((e.clientX - rect.left) / rect.width) * W;
+        let nearest = 0, best = Infinity;
+        sessions.forEach((s, i) => {
+          const d = Math.abs(x(i) - relX);
+          if (d < best) { best = d; nearest = i; }
+        });
+        showAt(nearest);
+      }
+
+      hit.addEventListener('pointerdown', handlePointer);
+      hit.addEventListener('pointermove', handlePointer);
+      hit.addEventListener('pointerleave', hide);
+    }
+
+    function renderCharts() {
+      renderLineChart({
+        svgId: 'chart-distance', containerId: 'chart-container-distance', tooltipId: 'tooltip-distance',
+        valueKey: 'distance', hex: '#2a78d6', unit: 'km', yStep: 1
+      });
+      renderLineChart({
+        svgId: 'chart-time', containerId: 'chart-container-time', tooltipId: 'tooltip-time',
+        valueKey: 'time', hex: '#eb6834', unit: 'min', yStep: 5
+      });
+    }
+
+    function toCsv() {
+      const header = ['Date', 'Time', 'Distance (km)', 'Duration (min)'];
+      const rows = sessions.map(s => [formatDate(s.recordedAt), formatTime(s.recordedAt), s.distance, s.time]);
+      return [header, ...rows].map(r => r.join(',')).join('\n');
+    }
+
+    window.exportCsv = function () {
+      const csv = toCsv();
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'walking-sessions.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    function applyRange() {
+      const emptyMsg = document.getElementById('range-empty-msg');
+
+      if (currentRangeDays === 'all') {
+        sessions = allSessions;
+      } else {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - currentRangeDays);
+        sessions = allSessions.filter(s => s.recordedAt >= cutoff);
+      }
+
+      const chartsWrap = document.getElementById('charts-wrap');
+      const exportBtn = document.getElementById('export-btn');
+
+      if (sessions.length === 0) {
+        emptyMsg.textContent = 'No sessions in this range.';
+        emptyMsg.style.display = 'block';
+        chartsWrap.style.display = 'none';
+        exportBtn.style.display = 'none';
+        document.getElementById('table-card').style.display = 'none';
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+      chartsWrap.style.display = 'block';
+      exportBtn.style.display = 'block';
+      renderCharts();
+      renderTable();
+    }
+
+    function setupRangeFilter() {
+      const buttons = Array.from(document.querySelectorAll('.range-pill'));
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const range = btn.dataset.range;
+          currentRangeDays = range === 'all' ? 'all' : Number(range);
+          buttons.forEach(b => b.classList.toggle('active', b === btn));
+          applyRange();
+        });
+      });
+      const defaultBtn = buttons.find(b => b.dataset.range === 'all');
+      defaultBtn.classList.add('active');
+    }
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (sessions.length > 0) renderCharts();
+      }, 150);
+    });
+
+    async function init() {
+      document.getElementById('report-user-line').textContent = 'for ' + localStorage.getItem('helth_user');
+
+      try {
+        allSessions = await getTrainingSessions('walking');
+      } catch (err) {
+        document.getElementById('state-msg').textContent = 'Could not load sessions: ' + err.message;
+        return;
+      }
+
+      if (allSessions.length === 0) {
+        document.getElementById('state-msg').textContent = 'No walking sessions logged yet.';
+        return;
+      }
+
+      document.getElementById('state-msg').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      setupRangeFilter();
+      applyRange();
+    }
+
+    init();
+  </script>
+
+</body>
+</html>
