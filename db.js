@@ -206,37 +206,37 @@ export async function getWeightSessions(username = getCurrentUser()) {
   });
 }
 
-// --- Cardio training sessions (running, walking), scoped under the ----
-// --- current user - distance in km, time in minutes -------------------
+// --- Training sessions (running, walking, pulldown, ...), scoped under ----
+// --- the current user. Each exercise type has its own field shape ---------
+// --- (e.g. running/walking: distance + time; pulldown: sessions + weight).
 
 function trainingCollection(kind, username) {
   return collection(db, "users", username, kind + "Sessions");
 }
 
-// values: { distance: number, time: number }
+// values: a flat object of whatever fields this exercise type tracks
 export async function saveTrainingSession(kind, values, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
   await addDoc(trainingCollection(kind, username), {
-    distance: values.distance,
-    time: values.time,
+    ...values,
     recordedAt: serverTimestamp(),
     recordedAtLocal: new Date().toString()
   });
 }
 
-// Returns one row per session: { id, recordedAt: Date, distance, time } sorted oldest first.
+// Returns one row per session: { id, recordedAt: Date, ...whatever fields
+// were saved } sorted oldest first.
 export async function getTrainingSessions(kind, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
   const q = query(trainingCollection(kind, username), orderBy("recordedAt", "asc"));
   const snap = await getDocs(q);
 
   return snap.docs.map(docSnap => {
-    const data = docSnap.data();
+    const { recordedAt, recordedAtLocal, ...fields } = docSnap.data();
     return {
       id: docSnap.id,
-      recordedAt: data.recordedAt ? data.recordedAt.toDate() : new Date(data.recordedAtLocal),
-      distance: data.distance,
-      time: data.time
+      recordedAt: recordedAt ? recordedAt.toDate() : new Date(recordedAtLocal),
+      ...fields
     };
   });
 }
