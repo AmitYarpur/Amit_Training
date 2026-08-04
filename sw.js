@@ -5,7 +5,7 @@
 // only makes the UI itself load fast and stay viewable if the network
 // briefly drops.
 
-const CACHE_NAME = 'helth-static-v1';
+const CACHE_NAME = 'helth-static-v2';
 
 const PRECACHE_URLS = [
   './',
@@ -54,9 +54,11 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-// Stale-while-revalidate for our own static files only: serve the cached
-// copy instantly if there is one, refresh it in the background, and fall
-// back to cache if the network is unavailable.
+// Network-first for our own static files only: always fetch the latest
+// version when online (so a deploy shows up the very next load, and
+// files can never go stale relative to each other - e.g. new HTML
+// paired with old CSS), falling back to the cache only if the network
+// request fails (offline / flaky connection).
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) {
@@ -64,17 +66,14 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      const network = fetch(event.request)
-        .then(response => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-          }
-          return response;
-        })
-        .catch(() => cached);
-      return cached || network;
-    })
+    fetch(event.request)
+      .then(response => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
