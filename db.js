@@ -25,6 +25,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// Registers the static-shell cache once per page load. Runs on every page
+// since every page imports this module. Firebase/Firestore traffic itself
+// is untouched by the service worker (see sw.js) - this only speeds up and
+// adds resilience to loading the app's own HTML/CSS/JS.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+
 const SESSION_KEY = "helth_user";
 const THEME_KEY = "helth_theme";
 const LANG_KEY = "helth_lang";
