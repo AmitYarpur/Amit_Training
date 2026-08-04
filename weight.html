@@ -8,13 +8,19 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
-  if (localStorage.getItem('helth_lang') === 'he') {
+  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  window.__getCurrentLang = function () { return window.__lang; };
+  if (window.__lang === 'he') {
     document.documentElement.setAttribute('lang', 'he');
     document.documentElement.setAttribute('dir', 'rtl');
   }
   if (!localStorage.getItem('helth_user')) {
     window.location.replace('index.html');
   }
+</script>
+<script src="i18n.js"></script>
+<script>
+  window.__t = window.I18N.t;
 </script>
 <link rel="stylesheet" href="styles.css">
 
@@ -84,19 +90,19 @@
     </div>
   </div>
 
+  <script>
+    window.I18N.translatePage(window.__lang);
+  </script>
+
   <script type="module">
     import { saveWeight, applyUserTheme, applyUserLanguage } from './db.js';
-    import { translatePage, t } from './i18n.js';
     window.__saveWeight = saveWeight;
-    window.__t = t;
     applyUserTheme();
 
-    let currentLang = 'en';
-    window.__getCurrentLang = () => currentLang;
 
     applyUserLanguage().then(lang => {
-      currentLang = lang;
-      translatePage(lang);
+      window.__lang = lang;
+      window.I18N.translatePage(lang);
       if (window.__updateHeadline) window.__updateHeadline();
     });
   </script>

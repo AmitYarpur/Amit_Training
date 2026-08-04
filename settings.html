@@ -8,13 +8,19 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
-  if (localStorage.getItem('helth_lang') === 'he') {
+  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  window.__getCurrentLang = function () { return window.__lang; };
+  if (window.__lang === 'he') {
     document.documentElement.setAttribute('lang', 'he');
     document.documentElement.setAttribute('dir', 'rtl');
   }
   if (!localStorage.getItem('helth_user')) {
     window.location.replace('index.html');
   }
+</script>
+<script src="i18n.js"></script>
+<script>
+  window.__t = window.I18N.t;
 </script>
 <link rel="stylesheet" href="styles.css">
 
@@ -79,18 +85,15 @@
     </div>
   </div>
 
+  <script>
+    window.I18N.translatePage(window.__lang);
+  </script>
+
   <script type="module">
     import { saveThemePreference, applyUserTheme, saveLanguagePreference, applyUserLanguage } from './db.js';
-    import { translatePage, t } from './i18n.js';
     window.__saveThemePreference = saveThemePreference;
     window.__applyUserTheme = applyUserTheme;
     window.__saveLanguagePreference = saveLanguagePreference;
-    window.__t = t;
-    window.__translatePage = translatePage;
-
-    let currentLang = 'en';
-    window.__getCurrentLang = () => currentLang;
-    window.__setCurrentLang = (lang) => { currentLang = lang; };
 
     // Reconciles against Firestore (correcting any stale/leftover cached
     // value, e.g. from a previous account on this device) then reflects
@@ -101,8 +104,8 @@
     });
 
     applyUserLanguage().then(lang => {
-      currentLang = lang;
-      translatePage(lang);
+      window.__lang = lang;
+      window.I18N.translatePage(lang);
       window.__markActiveLangPill(lang);
     });
   </script>
@@ -129,13 +132,13 @@
       const statusEl = document.getElementById('theme-status');
       const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
       const t = window.__t;
-      statusEl.textContent = t ? t('saving_ellipsis', lang) : 'Saving…';
+      statusEl.textContent = t ? window.I18N.t('saving_ellipsis', lang) : 'Saving…';
       try {
         await window.__saveThemePreference(theme);
-        statusEl.textContent = t ? t('saved_title', lang) : 'Saved';
+        statusEl.textContent = t ? window.I18N.t('saved_title', lang) : 'Saved';
         setTimeout(() => { statusEl.textContent = ''; }, 1500);
       } catch (err) {
-        statusEl.textContent = (t ? t('could_not_save_prefix', lang) : 'Could not save: ') + err.message;
+        statusEl.textContent = (t ? window.I18N.t('could_not_save_prefix', lang) : 'Could not save: ') + err.message;
       }
     }
 
@@ -154,17 +157,17 @@
     async function chooseLang(lang) {
       applyDir(lang);
       markActiveLangPill(lang);
-      if (window.__setCurrentLang) window.__setCurrentLang(lang);
-      if (window.__translatePage) window.__translatePage(lang);
+      window.__lang = lang;
+      window.I18N.translatePage(lang);
       const statusEl = document.getElementById('lang-status');
       const t = window.__t;
-      statusEl.textContent = t ? t('saving_ellipsis', lang) : 'Saving…';
+      statusEl.textContent = t ? window.I18N.t('saving_ellipsis', lang) : 'Saving…';
       try {
         await window.__saveLanguagePreference(lang);
-        statusEl.textContent = t ? t('saved_title', lang) : 'Saved';
+        statusEl.textContent = t ? window.I18N.t('saved_title', lang) : 'Saved';
         setTimeout(() => { statusEl.textContent = ''; }, 1500);
       } catch (err) {
-        statusEl.textContent = (t ? t('could_not_save_prefix', lang) : 'Could not save: ') + err.message;
+        statusEl.textContent = (t ? window.I18N.t('could_not_save_prefix', lang) : 'Could not save: ') + err.message;
       }
     }
 

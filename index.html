@@ -8,10 +8,16 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
-  if (localStorage.getItem('helth_lang') === 'he') {
+  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  window.__getCurrentLang = function () { return window.__lang; };
+  if (window.__lang === 'he') {
     document.documentElement.setAttribute('lang', 'he');
     document.documentElement.setAttribute('dir', 'rtl');
   }
+</script>
+<script src="i18n.js"></script>
+<script>
+  window.__t = window.I18N.t;
 </script>
 <link rel="stylesheet" href="styles.css">
 
@@ -137,16 +143,16 @@
 
   </div>
 
+  <script>
+    window.I18N.translatePage(window.__lang);
+  </script>
+
   <script type="module">
     import { login, signup, applyUserTheme, applyUserLanguage } from './db.js';
-    import { translatePage, t } from './i18n.js';
     window.__login = login;
     window.__signup = signup;
     window.__applyUserTheme = applyUserTheme;
-    window.__t = t;
 
-    let currentLang = 'en';
-    window.__getCurrentLang = () => currentLang;
 
     // Reconciles theme + language against Firestore for the case where the
     // page loads already-logged-in (module executes after the classic
@@ -154,8 +160,8 @@
     // data).
     applyUserTheme();
     applyUserLanguage().then(lang => {
-      currentLang = lang;
-      translatePage(lang);
+      window.__lang = lang;
+      window.I18N.translatePage(lang);
       if (window.__refreshDynamicText) window.__refreshDynamicText();
     });
   </script>
@@ -176,8 +182,8 @@
     function comingSoon(featureKey) {
       const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
       const t = window.__t;
-      const feature = t ? t(featureKey, lang) : featureKey;
-      const suffix = t ? t('coming_soon', lang) : 'coming soon';
+      const feature = t ? window.I18N.t(featureKey, lang) : featureKey;
+      const suffix = t ? window.I18N.t('coming_soon', lang) : 'coming soon';
       alert(feature + ' - ' + suffix);
     }
 
@@ -205,9 +211,9 @@
       }
 
       if (t) {
-        document.getElementById('auth-title').textContent = t(document.getElementById('auth-title').getAttribute('data-i18n'), lang);
-        document.getElementById('auth-subtext').textContent = t(document.getElementById('auth-subtext').getAttribute('data-i18n'), lang);
-        document.getElementById('auth-submit-btn').textContent = t(document.getElementById('auth-submit-btn').getAttribute('data-i18n'), lang);
+        document.getElementById('auth-title').textContent = window.I18N.t(document.getElementById('auth-title').getAttribute('data-i18n'), lang);
+        document.getElementById('auth-subtext').textContent = window.I18N.t(document.getElementById('auth-subtext').getAttribute('data-i18n'), lang);
+        document.getElementById('auth-submit-btn').textContent = window.I18N.t(document.getElementById('auth-submit-btn').getAttribute('data-i18n'), lang);
       }
     }
 
@@ -255,8 +261,8 @@
 
     async function enterApp() {
       const username = getLocalUser();
-      document.getElementById('welcome-headline').textContent = 'Wellcome ' + username;
       document.getElementById('user-badge-name').textContent = username;
+      refreshDynamicText();
 
       if (window.__applyUserTheme) {
         try {
@@ -265,8 +271,6 @@
           // keep whatever theme is already applied
         }
       }
-
-      refreshDynamicText();
 
       if (window.location.hash === '#menu') {
         showScreen('menu-screen');

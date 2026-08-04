@@ -8,13 +8,19 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
-  if (localStorage.getItem('helth_lang') === 'he') {
+  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  window.__getCurrentLang = function () { return window.__lang; };
+  if (window.__lang === 'he') {
     document.documentElement.setAttribute('lang', 'he');
     document.documentElement.setAttribute('dir', 'rtl');
   }
   if (!localStorage.getItem('helth_user')) {
     window.location.replace('index.html');
   }
+</script>
+<script src="i18n.js"></script>
+<script>
+  window.__t = window.I18N.t;
 </script>
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -58,9 +64,12 @@
     </div>
   </div>
 
+  <script>
+    window.I18N.translatePage(window.__lang);
+  </script>
+
   <script type="module">
     import { applyUserTheme, applyUserLanguage } from './db.js';
-    import { translatePage } from './i18n.js';
     applyUserTheme();
     applyUserLanguage().then(translatePage);
   </script>

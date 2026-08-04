@@ -8,13 +8,19 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
-  if (localStorage.getItem('helth_lang') === 'he') {
+  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  window.__getCurrentLang = function () { return window.__lang; };
+  if (window.__lang === 'he') {
     document.documentElement.setAttribute('lang', 'he');
     document.documentElement.setAttribute('dir', 'rtl');
   }
   if (!localStorage.getItem('helth_user')) {
     window.location.replace('index.html');
   }
+</script>
+<script src="i18n.js"></script>
+<script>
+  window.__t = window.I18N.t;
 </script>
 <link rel="stylesheet" href="styles.css">
 
@@ -223,22 +229,24 @@
     </div>
   </div>
 
+  <script>
+    window.I18N.translatePage(window.__lang);
+  </script>
+
   <script type="module">
     import { getTrainingSessions, applyUserTheme, applyUserLanguage } from './db.js';
-    import { translatePage, t } from './i18n.js';
     applyUserTheme();
 
-    let currentLang = 'en';
     let allSessions = [];
     let sessions = [];
     let currentRangeDays = 'all';
 
     function formatDate(d) {
-      const locale = currentLang === 'he' ? 'he-IL' : undefined;
+      const locale = window.__lang === 'he' ? 'he-IL' : undefined;
       return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
     }
     function formatTime(d) {
-      const locale = currentLang === 'he' ? 'he-IL' : undefined;
+      const locale = window.__lang === 'he' ? 'he-IL' : undefined;
       return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
     }
 
@@ -348,7 +356,7 @@
         label.setAttribute('y', py - 12);
         label.setAttribute('text-anchor', 'middle');
         label.setAttribute('class', 'point-label');
-        label.textContent = sessions[i].time + ' ' + t('unit_min', currentLang);
+        label.textContent = sessions[i].time + ' ' + window.I18N.t('unit_min', window.__lang);
         svg.appendChild(label);
       });
 
@@ -387,7 +395,7 @@
         distKey.style.background = HEX;
         const distVal = document.createElement('span');
         distVal.className = 'tt-value';
-        distVal.textContent = s.distance + ' ' + t('unit_km', currentLang);
+        distVal.textContent = s.distance + ' ' + window.I18N.t('unit_km', window.__lang);
         distRow.appendChild(distKey);
         distRow.appendChild(distVal);
         tooltip.appendChild(distRow);
@@ -397,7 +405,7 @@
         const timeVal = document.createElement('span');
         timeVal.className = 'tt-value';
         timeVal.style.marginLeft = '18px';
-        timeVal.textContent = s.time + ' ' + t('unit_min', currentLang);
+        timeVal.textContent = s.time + ' ' + window.I18N.t('unit_min', window.__lang);
         timeRow.appendChild(timeVal);
         tooltip.appendChild(timeRow);
 
@@ -431,8 +439,8 @@
 
     function toCsv() {
       const header = [
-        t('table_date', currentLang), t('table_time', currentLang),
-        t('table_distance_km', currentLang), t('table_duration_min', currentLang)
+        window.I18N.t('table_date', window.__lang), window.I18N.t('table_time', window.__lang),
+        window.I18N.t('table_distance_km', window.__lang), window.I18N.t('table_duration_min', window.__lang)
       ];
       const rows = sessions.map(s => [formatDate(s.recordedAt), formatTime(s.recordedAt), s.distance, s.time]);
       return [header, ...rows].map(r => r.join(',')).join('\n');
@@ -466,7 +474,7 @@
       const exportBtn = document.getElementById('export-btn');
 
       if (sessions.length === 0) {
-        emptyMsg.textContent = t('no_sessions_in_range', currentLang);
+        emptyMsg.textContent = window.I18N.t('no_sessions_in_range', window.__lang);
         emptyMsg.style.display = 'block';
         chartContainer.style.display = 'none';
         exportBtn.style.display = 'none';
@@ -504,21 +512,21 @@
     });
 
     async function init() {
-      currentLang = await applyUserLanguage();
-      translatePage(currentLang);
+      window.__lang = await applyUserLanguage();
+      window.I18N.translatePage(window.__lang);
 
-      document.getElementById('report-user-line').textContent = t('for_user_prefix', currentLang) + localStorage.getItem('helth_user');
-      document.getElementById('state-msg').textContent = t('loading_sessions', currentLang);
+      document.getElementById('report-user-line').textContent = window.I18N.t('for_user_prefix', window.__lang) + localStorage.getItem('helth_user');
+      document.getElementById('state-msg').textContent = window.I18N.t('loading_sessions', window.__lang);
 
       try {
         allSessions = await getTrainingSessions('walking');
       } catch (err) {
-        document.getElementById('state-msg').textContent = t('could_not_load_sessions', currentLang) + err.message;
+        document.getElementById('state-msg').textContent = window.I18N.t('could_not_load_sessions', window.__lang) + err.message;
         return;
       }
 
       if (allSessions.length === 0) {
-        document.getElementById('state-msg').textContent = t('no_walking_logged', currentLang);
+        document.getElementById('state-msg').textContent = window.I18N.t('no_walking_logged', window.__lang);
         return;
       }
 

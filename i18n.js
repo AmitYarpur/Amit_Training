@@ -314,7 +314,7 @@ const translations = {
   }
 };
 
-export function t(key, lang, vars) {
+function t(key, lang, vars) {
   const dict = translations[lang] || translations.en;
   let str = dict[key] !== undefined ? dict[key] : (translations.en[key] !== undefined ? translations.en[key] : key);
   if (vars) {
@@ -328,7 +328,7 @@ export function t(key, lang, vars) {
 // Applies translations to every element with a data-i18n attribute
 // (textContent) or data-i18n-placeholder (input placeholder), and sets
 // the page's text direction. Call after the DOM for the page is present.
-export function translatePage(lang) {
+function translatePage(lang) {
   document.documentElement.setAttribute('lang', lang === 'he' ? 'he' : 'en');
   document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
 
@@ -340,3 +340,9 @@ export function translatePage(lang) {
     el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder'), lang));
   });
 }
+
+// Plain global script (not an ES module) on purpose: it needs to run
+// synchronously, blocking parsing, right after the page's data-i18n
+// markup - so the correct language paints the first time, instead of
+// English flashing until the always-deferred module script catches up.
+window.I18N = { t, translatePage };
