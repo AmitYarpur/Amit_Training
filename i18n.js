@@ -21,10 +21,6 @@ const translations = {
     coming_soon: "coming soon",
 
     feature_training_timers: "Training Timers",
-    feature_abs: "Abs",
-    feature_plank: "Plank",
-    feature_abs_reports: "Abs Reports",
-    feature_plank_reports: "Plank Reports",
 
     // index.html
     auth_login_title: "Log In",
@@ -91,6 +87,11 @@ const translations = {
     field_workout_type: "Workout Type",
     err_abs_missing: "Please choose a workout type before submitting.",
 
+    // plank.html
+    eyebrow_plank: "Plank",
+    field_seconds: "Duration (seconds)",
+    err_plank_missing: "Please enter your plank duration before submitting.",
+
     // training.html
     headline_training: "Training",
     tile_running: "Running",
@@ -129,6 +130,7 @@ const translations = {
     headline_pulldown_report: "Pulldown Report",
     headline_bench_press_report: "Bench Press / Butterfly Report",
     headline_abs_report: "Abs Report",
+    headline_plank_report: "Plank Report",
     for_user_prefix: "for ",
     loading_readings: "Loading readings…",
     loading_sessions: "Loading sessions…",
@@ -139,6 +141,7 @@ const translations = {
     no_pulldown_logged: "No pulldown sessions logged yet.",
     no_bench_press_logged: "No bench press / butterfly sessions logged yet.",
     no_abs_logged: "No abs workouts logged yet.",
+    no_plank_logged: "No plank sessions logged yet.",
     could_not_load_readings: "Could not load readings: ",
     could_not_load_sessions: "Could not load sessions: ",
     range_week: "Last Week",
@@ -159,10 +162,12 @@ const translations = {
     table_duration_min: "Duration (min)",
     table_sessions: "Sessions",
     table_workout_type: "Workout Type",
+    table_seconds: "Duration (sec)",
     unit_km: "km",
     unit_min: "min",
     unit_kg: "kg",
     unit_sessions_suffix: "sessions",
+    unit_sec: "sec",
     workout_count_suffix: "times"
   },
 
@@ -184,10 +189,6 @@ const translations = {
     coming_soon: "בקרוב",
 
     feature_training_timers: "טיימרים לאימון",
-    feature_abs: "בטן",
-    feature_plank: "פלאנק",
-    feature_abs_reports: "דוחות בטן",
-    feature_plank_reports: "דוחות פלאנק",
 
     // index.html
     auth_login_title: "התחברות",
@@ -254,6 +255,11 @@ const translations = {
     field_workout_type: "סוג אימון",
     err_abs_missing: "נא לבחור סוג אימון לפני השליחה.",
 
+    // plank.html
+    eyebrow_plank: "פלאנק",
+    field_seconds: "משך (שניות)",
+    err_plank_missing: "נא להזין את משך הפלאנק לפני השליחה.",
+
     // training.html
     headline_training: "אימונים",
     tile_running: "ריצה",
@@ -292,6 +298,7 @@ const translations = {
     headline_pulldown_report: "דוח פולי עליון",
     headline_bench_press_report: "דוח לחיצת חזה / פרפר",
     headline_abs_report: "דוח בטן",
+    headline_plank_report: "דוח פלאנק",
     for_user_prefix: "עבור ",
     loading_readings: "טוען מדידות…",
     loading_sessions: "טוען אימונים…",
@@ -302,6 +309,7 @@ const translations = {
     no_pulldown_logged: "עדיין לא נרשמו אימוני פולי עליון.",
     no_bench_press_logged: "עדיין לא נרשמו אימוני לחיצת חזה / פרפר.",
     no_abs_logged: "עדיין לא נרשמו אימוני בטן.",
+    no_plank_logged: "עדיין לא נרשמו אימוני פלאנק.",
     could_not_load_readings: "לא ניתן היה לטעון את המדידות: ",
     could_not_load_sessions: "לא ניתן היה לטעון את האימונים: ",
     range_week: "השבוע האחרון",
@@ -322,10 +330,12 @@ const translations = {
     table_duration_min: "משך (דקות)",
     table_sessions: "סטים",
     table_workout_type: "סוג אימון",
+    table_seconds: "משך (שניות)",
     unit_km: "ק״מ",
     unit_min: "דק'",
     unit_kg: "ק״ג",
     unit_sessions_suffix: "סטים",
+    unit_sec: "שנ'",
     workout_count_suffix: "פעמים"
   }
 };
