@@ -152,12 +152,13 @@
     window.__login = login;
     window.__signup = signup;
     window.__applyUserTheme = applyUserTheme;
-
+    window.__applyUserLanguage = applyUserLanguage;
 
     // Reconciles theme + language against Firestore for the case where the
     // page loads already-logged-in (module executes after the classic
     // script below has already shown the welcome/menu screen from cached
-    // data).
+    // data). For a fresh login, enterApp() below calls applyUserLanguage()
+    // itself once the username is known.
     applyUserTheme();
     applyUserLanguage().then(lang => {
       window.__lang = lang;
@@ -269,6 +270,20 @@
           await window.__applyUserTheme();
         } catch (e) {
           // keep whatever theme is already applied
+        }
+      }
+
+      // Re-resolve language for the just-logged-in user - the earlier
+      // module-level applyUserLanguage() call ran before anyone was
+      // logged in, so it could only ever return the cached/default value.
+      if (window.__applyUserLanguage) {
+        try {
+          const lang = await window.__applyUserLanguage();
+          window.__lang = lang;
+          window.I18N.translatePage(lang);
+          refreshDynamicText();
+        } catch (e) {
+          // keep whatever language is already applied
         }
       }
 
