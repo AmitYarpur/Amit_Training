@@ -104,7 +104,8 @@
     width: 100%;
     height: auto;
     display: block;
-    touch-action: none;
+    touch-action: pan-y pinch-zoom;
+    direction: ltr;
   }
 
   .gridline {
@@ -343,6 +344,14 @@
       svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
       svg.innerHTML = '';
 
+      const bg = document.createElementNS(svgns, 'rect');
+      bg.setAttribute('x', 0);
+      bg.setAttribute('y', 0);
+      bg.setAttribute('width', W);
+      bg.setAttribute('height', H);
+      bg.setAttribute('rx', 16);
+      bg.setAttribute('fill', 'var(--chart-surface)');
+      svg.appendChild(bg);
       // gridlines (4 horizontal steps)
       const steps = 4;
       for (let i = 0; i <= steps; i++) {
