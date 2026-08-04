@@ -8,6 +8,10 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
+  if (localStorage.getItem('helth_lang') === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
   if (!localStorage.getItem('helth_user')) {
     window.location.replace('index.html');
   }
@@ -171,24 +175,24 @@
 <body class="viz-root">
 
   <div class="wrap">
-    <p class="eyebrow">Reports</p>
-    <h1 class="headline">Weight Report</h1>
+    <p class="eyebrow" data-i18n="eyebrow_reports">Reports</p>
+    <h1 class="headline" data-i18n="headline_weight_report">Weight Report</h1>
     <p class="subtext" style="margin:-4px 0 0;" id="report-user-line"></p>
     <a class="back-link" href="reports.html">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-      Back to reports
+      <span data-i18n="back_reports">Back to reports</span>
     </a>
 
     <div class="card" style="margin-top:20px;">
-      <div id="state-msg" class="state-msg">Loading readings…</div>
+      <div id="state-msg" class="state-msg" data-i18n="loading_readings">Loading readings…</div>
 
       <div id="content" style="display:none;">
         <div class="range-filter" id="range-filter">
-          <button class="range-pill" data-range="7">Last Week</button>
-          <button class="range-pill" data-range="30">Last Month</button>
-          <button class="range-pill" data-range="90">Last 3 Months</button>
-          <button class="range-pill" data-range="365">Last Year</button>
-          <button class="range-pill" data-range="all">All Time</button>
+          <button class="range-pill" data-range="7" data-i18n="range_week">Last Week</button>
+          <button class="range-pill" data-range="30" data-i18n="range_month">Last Month</button>
+          <button class="range-pill" data-range="90" data-i18n="range_3months">Last 3 Months</button>
+          <button class="range-pill" data-range="365" data-i18n="range_year">Last Year</button>
+          <button class="range-pill" data-range="all" data-i18n="range_all">All Time</button>
         </div>
 
         <div id="range-empty-msg" class="state-msg" style="display:none;"></div>
@@ -198,7 +202,7 @@
           <div class="tooltip" id="tooltip"></div>
         </div>
 
-        <button class="btn-primary" id="export-btn" onclick="exportCsv()" style="margin-top:16px;">Export to CSV</button>
+        <button class="btn-primary" id="export-btn" onclick="exportCsv()" style="margin-top:16px;" data-i18n="export_csv">Export to CSV</button>
       </div>
     </div>
 
@@ -206,7 +210,7 @@
       <div style="overflow-x:auto;">
         <table>
           <thead>
-            <tr><th>Date</th><th>Time</th><th>Weight (kg)</th></tr>
+            <tr><th data-i18n="table_date">Date</th><th data-i18n="table_time">Time</th><th data-i18n="table_weight_kg">Weight (kg)</th></tr>
           </thead>
           <tbody id="table-body"></tbody>
         </table>
@@ -215,9 +219,11 @@
   </div>
 
   <script type="module">
-    import { getWeightSessions, applyUserTheme } from './db.js';
+    import { getWeightSessions, applyUserTheme, applyUserLanguage } from './db.js';
+    import { translatePage, t } from './i18n.js';
     applyUserTheme();
 
+    let currentLang = 'en';
     const SERIES_HEX = '#1baf7a';
 
     let allSessions = [];
@@ -225,10 +231,12 @@
     let currentRangeDays = 'all';
 
     function formatDate(d) {
-      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const locale = currentLang === 'he' ? 'he-IL' : undefined;
+      return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
     }
     function formatTime(d) {
-      return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      const locale = currentLang === 'he' ? 'he-IL' : undefined;
+      return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
     }
 
     function renderTable() {
@@ -333,7 +341,7 @@
       last.setAttribute('x', lastX + 9);
       last.setAttribute('y', lastY + 5);
       last.setAttribute('class', 'end-label');
-      last.textContent = sessions[sessions.length - 1].value + ' kg';
+      last.textContent = sessions[sessions.length - 1].value + ' ' + t('unit_kg', currentLang);
       svg.appendChild(last);
 
       // crosshair
@@ -373,10 +381,10 @@
         key.className = 'tt-key';
         key.style.background = SERIES_HEX;
         const name = document.createElement('span');
-        name.textContent = 'Weight';
+        name.textContent = t('tile_weight', currentLang);
         const val = document.createElement('span');
         val.className = 'tt-value';
-        val.textContent = s.value + ' kg';
+        val.textContent = s.value + ' ' + t('unit_kg', currentLang);
         row.appendChild(key);
         row.appendChild(name);
         row.appendChild(val);
@@ -411,7 +419,7 @@
     }
 
     function toCsv() {
-      const header = ['Date', 'Time', 'Weight (kg)'];
+      const header = [t('table_date', currentLang), t('table_time', currentLang), t('table_weight_kg', currentLang)];
       const rows = sessions.map(s => [formatDate(s.recordedAt), formatTime(s.recordedAt), s.value]);
       return [header, ...rows].map(r => r.join(',')).join('\n');
     }
@@ -444,7 +452,7 @@
       const exportBtn = document.getElementById('export-btn');
 
       if (sessions.length === 0) {
-        emptyMsg.textContent = 'No readings in this range.';
+        emptyMsg.textContent = t('no_readings_in_range', currentLang);
         emptyMsg.style.display = 'block';
         chartContainer.style.display = 'none';
         exportBtn.style.display = 'none';
@@ -483,17 +491,21 @@
     });
 
     async function init() {
-      document.getElementById('report-user-line').textContent = 'for ' + localStorage.getItem('helth_user');
+      currentLang = await applyUserLanguage();
+      translatePage(currentLang);
+
+      document.getElementById('report-user-line').textContent = t('for_user_prefix', currentLang) + localStorage.getItem('helth_user');
+      document.getElementById('state-msg').textContent = t('loading_readings', currentLang);
 
       try {
         allSessions = await getWeightSessions();
       } catch (err) {
-        document.getElementById('state-msg').textContent = 'Could not load readings: ' + err.message;
+        document.getElementById('state-msg').textContent = t('could_not_load_readings', currentLang) + err.message;
         return;
       }
 
       if (allSessions.length === 0) {
-        document.getElementById('state-msg').textContent = 'No weight readings logged yet.';
+        document.getElementById('state-msg').textContent = t('no_weight_logged', currentLang);
         return;
       }
 

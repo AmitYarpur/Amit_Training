@@ -27,6 +27,7 @@ const db = getFirestore(app);
 
 const SESSION_KEY = "helth_user";
 const THEME_KEY = "helth_theme";
+const LANG_KEY = "helth_lang";
 
 // --- Auth (lightweight, no backend) -----------------------------------
 // There's no server here to keep a password check secret, so this is a
@@ -135,6 +136,39 @@ export async function applyUserTheme() {
     document.documentElement.removeAttribute("data-theme");
   }
   localStorage.setItem(THEME_KEY, theme);
+}
+
+// language: "en" | "he"
+export async function saveLanguagePreference(language, username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  await setDoc(userDocRef(username), { language }, { merge: true });
+  localStorage.setItem(LANG_KEY, language);
+}
+
+export async function getLanguagePreference(username = getCurrentUser()) {
+  if (!username) return null;
+  const snap = await getDoc(userDocRef(username));
+  return snap.exists() ? (snap.data().language || null) : null;
+}
+
+// Resolves the signed-in user's saved language (defaulting to "en"),
+// corrects the localStorage cache, sets the page's dir attribute, and
+// returns the resolved language so the caller can run translatePage().
+export async function applyUserLanguage() {
+  const cached = localStorage.getItem(LANG_KEY) || "en";
+  const username = getCurrentUser();
+  if (!username) return cached;
+
+  let language = "en";
+  try {
+    language = (await getLanguagePreference(username)) || "en";
+  } catch (e) {
+    return cached; // keep whatever's already applied rather than fail loudly here
+  }
+
+  document.documentElement.setAttribute("dir", language === "he" ? "rtl" : "ltr");
+  localStorage.setItem(LANG_KEY, language);
+  return language;
 }
 
 // --- Blood pressure readings, scoped under the current user -----------

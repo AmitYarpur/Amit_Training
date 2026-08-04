@@ -8,6 +8,10 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
+  if (localStorage.getItem('helth_lang') === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
   if (!localStorage.getItem('helth_user')) {
     window.location.replace('index.html');
   }
@@ -28,7 +32,7 @@
 
     <!-- Screen 1: enter sessions + weight -->
     <div class="card" id="entry-screen">
-      <p class="eyebrow">Bench Press / Butterfly</p>
+      <p class="eyebrow" data-i18n="eyebrow_bench_press">Bench Press / Butterfly</p>
       <h1 class="headline" id="datetime-headline" style="font-size:18px;">Today is the ...</h1>
 
       <div class="tile-list" style="margin-top:18px;">
@@ -36,7 +40,7 @@
           <span class="icon-badge badge-orange">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><rect x="6" y="10" width="1.6" height="4" rx="0.5"/><rect x="16.4" y="10" width="1.6" height="4" rx="0.5"/><path d="M7.6 12h8.8"/></svg>
           </span>
-          <span class="field-label">Sessions (1-4)</span>
+          <span class="field-label" data-i18n="field_sessions">Sessions (1-4)</span>
           <input class="field-input" type="number" id="input-sessions" inputmode="numeric" step="1" min="1" placeholder="--">
         </label>
 
@@ -44,18 +48,18 @@
           <span class="icon-badge badge-violet">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><rect x="6" y="10" width="1.6" height="4" rx="0.5"/><rect x="16.4" y="10" width="1.6" height="4" rx="0.5"/><path d="M7.6 12h8.8"/></svg>
           </span>
-          <span class="field-label">Weight (kg)</span>
+          <span class="field-label" data-i18n="field_weight_kg">Weight (kg)</span>
           <input class="field-input" type="number" id="input-weight" inputmode="decimal" step="0.5" placeholder="--">
         </label>
       </div>
 
       <div class="error" id="entry-error" style="text-align:center; margin-top:10px;"></div>
 
-      <button class="btn-primary" id="submit-btn" onclick="openSummary()">Submit</button>
+      <button class="btn-primary" id="submit-btn" onclick="openSummary()" data-i18n="submit">Submit</button>
 
       <a class="back-link" href="training.html">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-        Back to training
+        <span data-i18n="back_training">Back to training</span>
       </a>
     </div>
 
@@ -64,14 +68,14 @@
       <div class="checkmark-badge">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
       </div>
-      <h2 class="headline" style="text-align:center;">Saved</h2>
-      <div class="summary-row"><span>Sessions</span><span class="value" id="saved-sessions"></span></div>
-      <div class="summary-row"><span>Weight</span><span class="value" id="saved-weight"></span></div>
+      <h2 class="headline" style="text-align:center;" data-i18n="saved_title">Saved</h2>
+      <div class="summary-row"><span data-i18n="summary_sessions">Sessions</span><span class="value" id="saved-sessions"></span></div>
+      <div class="summary-row"><span data-i18n="summary_weight">Weight</span><span class="value" id="saved-weight"></span></div>
 
-      <button class="btn-primary" onclick="startNewSession()" style="margin-top:22px;">Log another session</button>
+      <button class="btn-primary" onclick="startNewSession()" style="margin-top:22px;" data-i18n="log_another_session">Log another session</button>
       <a class="back-link" href="training.html">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-        Back to training
+        <span data-i18n="back_training">Back to training</span>
       </a>
     </div>
 
@@ -80,33 +84,53 @@
   <!-- Are you sure -->
   <div class="overlay" id="confirm-overlay">
     <div class="modal">
-      <h2>Are you sure?</h2>
-      <div class="summary-row"><span>Sessions</span><span class="value" id="confirm-sessions"></span></div>
-      <div class="summary-row"><span>Weight</span><span class="value" id="confirm-weight"></span></div>
+      <h2 data-i18n="are_you_sure">Are you sure?</h2>
+      <div class="summary-row"><span data-i18n="summary_sessions">Sessions</span><span class="value" id="confirm-sessions"></span></div>
+      <div class="summary-row"><span data-i18n="summary_weight">Weight</span><span class="value" id="confirm-weight"></span></div>
       <div class="row" style="margin-top:20px;">
-        <button class="btn-secondary" onclick="closeModals()">Edit</button>
-        <button class="btn-primary" id="confirm-save-btn" onclick="submitSession()">Yes, Save</button>
+        <button class="btn-secondary" onclick="closeModals()" data-i18n="edit">Edit</button>
+        <button class="btn-primary" id="confirm-save-btn" onclick="submitSession()" data-i18n="yes_save">Yes, Save</button>
       </div>
     </div>
   </div>
 
   <script type="module">
-    import { saveTrainingSession, applyUserTheme } from './db.js';
+    import { saveTrainingSession, applyUserTheme, applyUserLanguage } from './db.js';
+    import { translatePage, t } from './i18n.js';
     window.__saveTrainingSession = (values) => saveTrainingSession('benchPress', values);
+    window.__t = t;
     applyUserTheme();
+
+    let currentLang = 'en';
+    window.__getCurrentLang = () => currentLang;
+
+    applyUserLanguage().then(lang => {
+      currentLang = lang;
+      translatePage(lang);
+      if (window.__updateHeadline) window.__updateHeadline();
+    });
   </script>
 
   <script>
     function updateHeadline() {
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const locale = lang === 'he' ? 'he-IL' : undefined;
       const now = new Date();
-      const dateStr = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      const timeStr = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      document.getElementById('datetime-headline').textContent = `Today is the ${dateStr} and ${timeStr}`;
+      const dateStr = now.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const timeStr = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const headline = window.__t ? window.__t('today_headline', lang, { date: dateStr, time: timeStr }) : `Today is the ${dateStr} and ${timeStr}`;
+      document.getElementById('datetime-headline').textContent = headline;
     }
+    window.__updateHeadline = updateHeadline;
     updateHeadline();
     setInterval(updateHeadline, 1000);
 
     const FIELDS = ['sessions', 'weight'];
+
+    function unit(key) {
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      return window.__t ? window.__t(key, lang) : key;
+    }
 
     function readValues() {
       const values = {};
@@ -121,21 +145,23 @@
     function openSummary() {
       const values = readValues();
       const missing = FIELDS.some(field => values[field] === null);
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
 
       if (missing) {
-        document.getElementById('entry-error').textContent = 'Please enter both sessions and weight before submitting.';
+        document.getElementById('entry-error').textContent = window.__t ? window.__t('err_pulldown_missing', lang) : 'Please enter both sessions and weight before submitting.';
         return;
       }
       document.getElementById('entry-error').textContent = '';
 
       document.getElementById('confirm-sessions').textContent = values.sessions;
-      document.getElementById('confirm-weight').textContent = values.weight + ' kg';
+      document.getElementById('confirm-weight').textContent = values.weight + ' ' + unit('unit_kg');
       document.getElementById('confirm-overlay').classList.add('active');
     }
 
     async function submitSession() {
       const values = readValues();
       const btn = document.getElementById('confirm-save-btn');
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
       btn.disabled = true;
       try {
         await window.__saveTrainingSession(values);
@@ -143,13 +169,14 @@
         showSavedScreen(values);
       } catch (err) {
         btn.disabled = false;
-        alert('Could not save session, please try again.\n' + err.message);
+        const prefix = window.__t ? window.__t('err_session_save_failed', lang) : 'Could not save session, please try again.\n';
+        alert(prefix + err.message);
       }
     }
 
     function showSavedScreen(values) {
       document.getElementById('saved-sessions').textContent = values.sessions;
-      document.getElementById('saved-weight').textContent = values.weight + ' kg';
+      document.getElementById('saved-weight').textContent = values.weight + ' ' + unit('unit_kg');
       document.getElementById('entry-screen').classList.add('hidden');
       document.getElementById('saved-screen').classList.remove('hidden');
     }

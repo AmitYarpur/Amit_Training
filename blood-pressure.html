@@ -8,6 +8,10 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
+  if (localStorage.getItem('helth_lang') === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
   if (!localStorage.getItem('helth_user')) {
     window.location.replace('index.html');
   }
@@ -28,7 +32,7 @@
 
     <!-- Screen 1: enter the 3 values inline -->
     <div class="card" id="entry-screen">
-      <p class="eyebrow">Blood Pressure</p>
+      <p class="eyebrow" data-i18n="eyebrow_blood_pressure">Blood Pressure</p>
       <h1 class="headline" id="datetime-headline" style="font-size:18px;">Today is the ...</h1>
 
       <div class="tile-list" style="margin-top:18px;">
@@ -36,7 +40,7 @@
           <span class="icon-badge badge-blue">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8"/><path d="M8 7l4-4 4 4"/><path d="M5 21h14"/></svg>
           </span>
-          <span class="field-label">Systolic (top number)</span>
+          <span class="field-label" data-i18n="field_systolic">Systolic (top number)</span>
           <input class="field-input" type="number" id="input-systolic" inputmode="numeric" placeholder="--">
         </label>
 
@@ -44,7 +48,7 @@
           <span class="icon-badge badge-teal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-8"/><path d="M16 17l-4 4-4-4"/><path d="M5 3h14"/></svg>
           </span>
-          <span class="field-label">Diastolic (bottom number)</span>
+          <span class="field-label" data-i18n="field_diastolic">Diastolic (bottom number)</span>
           <input class="field-input" type="number" id="input-diastolic" inputmode="numeric" placeholder="--">
         </label>
 
@@ -52,18 +56,18 @@
           <span class="icon-badge badge-orange">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l1.5-4.5 3 9 2-11 2 6.5h6.5"/></svg>
           </span>
-          <span class="field-label">Heart rate</span>
+          <span class="field-label" data-i18n="field_heart_rate">Heart rate</span>
           <input class="field-input" type="number" id="input-heart_rate" inputmode="numeric" placeholder="--">
         </label>
       </div>
 
       <div class="error" id="entry-error" style="text-align:center; margin-top:10px;"></div>
 
-      <button class="btn-primary" id="submit-btn" onclick="openSummary()">Submit</button>
+      <button class="btn-primary" id="submit-btn" onclick="openSummary()" data-i18n="submit">Submit</button>
 
       <a class="back-link" href="index.html#menu">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-        Back to home
+        <span data-i18n="back_home">Back to home</span>
       </a>
     </div>
 
@@ -72,15 +76,15 @@
       <div class="checkmark-badge">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
       </div>
-      <h2 class="headline" style="text-align:center;">Saved</h2>
-      <div class="summary-row"><span>Systolic (top number)</span><span class="value" id="saved-systolic"></span></div>
-      <div class="summary-row"><span>Diastolic (bottom number)</span><span class="value" id="saved-diastolic"></span></div>
-      <div class="summary-row"><span>Heart rate</span><span class="value" id="saved-heart_rate"></span></div>
+      <h2 class="headline" style="text-align:center;" data-i18n="saved_title">Saved</h2>
+      <div class="summary-row"><span data-i18n="field_systolic">Systolic (top number)</span><span class="value" id="saved-systolic"></span></div>
+      <div class="summary-row"><span data-i18n="field_diastolic">Diastolic (bottom number)</span><span class="value" id="saved-diastolic"></span></div>
+      <div class="summary-row"><span data-i18n="field_heart_rate">Heart rate</span><span class="value" id="saved-heart_rate"></span></div>
 
-      <button class="btn-primary" onclick="startNewSession()" style="margin-top:22px;">Log another reading</button>
+      <button class="btn-primary" onclick="startNewSession()" style="margin-top:22px;" data-i18n="log_another_reading">Log another reading</button>
       <a class="back-link" href="index.html#menu">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-        Back to home
+        <span data-i18n="back_home">Back to home</span>
       </a>
     </div>
 
@@ -89,30 +93,45 @@
   <!-- Are you sure, showing all 3 values -->
   <div class="overlay" id="confirm-overlay">
     <div class="modal">
-      <h2>Are you sure?</h2>
-      <div class="summary-row"><span>Systolic (top number)</span><span class="value" id="confirm-systolic"></span></div>
-      <div class="summary-row"><span>Diastolic (bottom number)</span><span class="value" id="confirm-diastolic"></span></div>
-      <div class="summary-row"><span>Heart rate</span><span class="value" id="confirm-heart_rate"></span></div>
+      <h2 data-i18n="are_you_sure">Are you sure?</h2>
+      <div class="summary-row"><span data-i18n="field_systolic">Systolic (top number)</span><span class="value" id="confirm-systolic"></span></div>
+      <div class="summary-row"><span data-i18n="field_diastolic">Diastolic (bottom number)</span><span class="value" id="confirm-diastolic"></span></div>
+      <div class="summary-row"><span data-i18n="field_heart_rate">Heart rate</span><span class="value" id="confirm-heart_rate"></span></div>
       <div class="row" style="margin-top:20px;">
-        <button class="btn-secondary" onclick="closeModals()">Edit</button>
-        <button class="btn-primary" id="confirm-save-btn" onclick="submitReadings()">Yes, Save</button>
+        <button class="btn-secondary" onclick="closeModals()" data-i18n="edit">Edit</button>
+        <button class="btn-primary" id="confirm-save-btn" onclick="submitReadings()" data-i18n="yes_save">Yes, Save</button>
       </div>
     </div>
   </div>
 
   <script type="module">
-    import { saveReadings, applyUserTheme } from './db.js';
+    import { saveReadings, applyUserTheme, applyUserLanguage } from './db.js';
+    import { translatePage, t } from './i18n.js';
     window.__saveReadings = saveReadings;
+    window.__t = t;
     applyUserTheme();
+
+    let currentLang = 'en';
+    window.__getCurrentLang = () => currentLang;
+
+    applyUserLanguage().then(lang => {
+      currentLang = lang;
+      translatePage(lang);
+      if (window.__updateHeadline) window.__updateHeadline();
+    });
   </script>
 
   <script>
     function updateHeadline() {
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const locale = lang === 'he' ? 'he-IL' : undefined;
       const now = new Date();
-      const dateStr = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      const timeStr = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      document.getElementById('datetime-headline').textContent = `Today is the ${dateStr} and ${timeStr}`;
+      const dateStr = now.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const timeStr = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const headline = window.__t ? window.__t('today_headline', lang, { date: dateStr, time: timeStr }) : `Today is the ${dateStr} and ${timeStr}`;
+      document.getElementById('datetime-headline').textContent = headline;
     }
+    window.__updateHeadline = updateHeadline;
     updateHeadline();
     setInterval(updateHeadline, 1000);
 
@@ -131,9 +150,10 @@
     function openSummary() {
       const values = readValues();
       const missing = TYPES.some(type => values[type] === null);
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
 
       if (missing) {
-        document.getElementById('entry-error').textContent = 'Please enter all 3 values before submitting.';
+        document.getElementById('entry-error').textContent = window.__t ? window.__t('err_bp_missing', lang) : 'Please enter all 3 values before submitting.';
         return;
       }
       document.getElementById('entry-error').textContent = '';
@@ -147,6 +167,7 @@
     async function submitReadings() {
       const values = readValues();
       const btn = document.getElementById('confirm-save-btn');
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
       btn.disabled = true;
       try {
         await window.__saveReadings(values);
@@ -154,7 +175,8 @@
         showSavedScreen(values);
       } catch (err) {
         btn.disabled = false;
-        alert('Could not save readings, please try again.\n' + err.message);
+        const prefix = window.__t ? window.__t('err_bp_save_failed', lang) : 'Could not save readings, please try again.\n';
+        alert(prefix + err.message);
       }
     }
 

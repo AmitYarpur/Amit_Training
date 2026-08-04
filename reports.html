@@ -8,6 +8,10 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
+  if (localStorage.getItem('helth_lang') === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
   if (!localStorage.getItem('helth_user')) {
     window.location.replace('index.html');
   }
@@ -18,15 +22,15 @@
 
   <div class="page">
     <div class="card">
-      <p class="eyebrow">Helth</p>
-      <h2 class="headline">Reports</h2>
+      <p class="eyebrow" data-i18n="eyebrow_helth">Helth</p>
+      <h2 class="headline" data-i18n="headline_reports">Reports</h2>
 
       <div class="tile-list">
         <button class="tile-btn" onclick="window.location.href='blood-pressure-report.html'">
           <span class="icon-badge badge-blue">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l1.5-4.5 3 9 2-11 2 6.5h6.5"/></svg>
           </span>
-          <span class="tile-label">Blood Pressure Reports</span>
+          <span class="tile-label" data-i18n="tile_bp_reports">Blood Pressure Reports</span>
           <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
 
@@ -34,7 +38,7 @@
           <span class="icon-badge badge-teal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="12" cy="13" r="3.2"/><path d="M12 8v1.2"/></svg>
           </span>
-          <span class="tile-label">Weight Reports</span>
+          <span class="tile-label" data-i18n="tile_weight_reports">Weight Reports</span>
           <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
 
@@ -42,21 +46,23 @@
           <span class="icon-badge badge-orange">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="9" width="3" height="6" rx="1"/><rect x="18.5" y="9" width="3" height="6" rx="1"/><path d="M5.5 12h13"/><rect x="6.5" y="7.5" width="1.6" height="9" rx="0.6"/><rect x="15.9" y="7.5" width="1.6" height="9" rx="0.6"/></svg>
           </span>
-          <span class="tile-label">Training Reports</span>
+          <span class="tile-label" data-i18n="tile_training_reports">Training Reports</span>
           <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
       </div>
 
       <a class="back-link" href="index.html#menu">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-        Back to home
+        <span data-i18n="back_home">Back to home</span>
       </a>
     </div>
   </div>
 
   <script type="module">
-    import { applyUserTheme } from './db.js';
+    import { applyUserTheme, applyUserLanguage } from './db.js';
+    import { translatePage } from './i18n.js';
     applyUserTheme();
+    applyUserLanguage().then(translatePage);
   </script>
 
 </body>

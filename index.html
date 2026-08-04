@@ -8,6 +8,10 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
+  if (localStorage.getItem('helth_lang') === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
 </script>
 <link rel="stylesheet" href="styles.css">
 
@@ -48,18 +52,18 @@
       <div class="welcome-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l1.5-4.5 3 9 2-11 2 6.5h6.5"/></svg>
       </div>
-      <p class="eyebrow">Helth</p>
-      <h1 class="headline" id="auth-title">Log In</h1>
-      <p class="subtext" id="auth-subtext">Welcome back. Enter your username and password.</p>
+      <p class="eyebrow" data-i18n="eyebrow_helth">Helth</p>
+      <h1 class="headline" id="auth-title" data-i18n="auth_login_title">Log In</h1>
+      <p class="subtext" id="auth-subtext" data-i18n="auth_login_subtext">Welcome back. Enter your username and password.</p>
 
-      <input class="text-input" id="auth-username" type="text" placeholder="Username" autocomplete="username">
-      <input class="text-input" id="auth-password" type="password" placeholder="Password" autocomplete="current-password">
+      <input class="text-input" id="auth-username" type="text" placeholder="Username" data-i18n-placeholder="username_placeholder" autocomplete="username">
+      <input class="text-input" id="auth-password" type="password" placeholder="Password" data-i18n-placeholder="password_placeholder" autocomplete="current-password">
       <div class="error" id="auth-error" style="text-align:center; min-height:18px; margin-bottom:8px;"></div>
 
-      <button class="btn-primary" id="auth-submit-btn" onclick="submitAuth()">Log In</button>
+      <button class="btn-primary" id="auth-submit-btn" onclick="submitAuth()" data-i18n="auth_login_btn">Log In</button>
 
-      <p class="auth-toggle" id="toggle-to-signup">New here? <a onclick="setAuthMode('signup')">Sign Up</a></p>
-      <p class="auth-toggle" id="toggle-to-login" style="display:none;">Already have an account? <a onclick="setAuthMode('login')">Log In</a></p>
+      <p class="auth-toggle" id="toggle-to-signup"><span data-i18n="new_here">New here? </span><a onclick="setAuthMode('signup')" data-i18n="sign_up_link">Sign Up</a></p>
+      <p class="auth-toggle" id="toggle-to-login" style="display:none;"><span data-i18n="already_have_account">Already have an account? </span><a onclick="setAuthMode('login')" data-i18n="log_in_link">Log In</a></p>
     </div>
 
     <!-- Screen 1: welcome -->
@@ -67,25 +71,25 @@
       <div class="welcome-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l1.5-4.5 3 9 2-11 2 6.5h6.5"/></svg>
       </div>
-      <p class="eyebrow">Helth</p>
+      <p class="eyebrow" data-i18n="eyebrow_helth">Helth</p>
       <h1 class="headline" id="welcome-headline">Wellcome</h1>
-      <p class="subtext">Your personal health tracker. Log readings, watch trends, stay on top of it.</p>
-      <button class="btn-primary" id="start-btn" onclick="showScreen('menu-screen')">Start</button>
+      <p class="subtext" data-i18n="welcome_subtext">Your personal health tracker. Log readings, watch trends, stay on top of it.</p>
+      <button class="btn-primary" id="start-btn" onclick="showScreen('menu-screen')" data-i18n="start_btn">Start</button>
     </div>
 
     <!-- Screen 2: menu -->
     <div id="menu-screen" class="card screen">
       <div class="user-badge">
-        <span>Signed in as <strong id="user-badge-name"></strong></span>
-        <a onclick="doLogout()">Log out</a>
+        <span><span data-i18n="signed_in_as">Signed in as </span><strong id="user-badge-name"></strong></span>
+        <a onclick="doLogout()" data-i18n="log_out">Log out</a>
       </div>
-      <h2 class="headline">Home Page</h2>
+      <h2 class="headline" data-i18n="home_page">Home Page</h2>
       <div class="tile-list">
         <button class="tile-btn" onclick="window.location.href='blood-pressure.html'">
           <span class="icon-badge badge-blue">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l1.5-4.5 3 9 2-11 2 6.5h6.5"/></svg>
           </span>
-          <span class="tile-label">Blood Pressure</span>
+          <span class="tile-label" data-i18n="tile_blood_pressure">Blood Pressure</span>
           <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
 
@@ -93,7 +97,7 @@
           <span class="icon-badge badge-teal">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="12" cy="13" r="3.2"/><path d="M12 8v1.2"/></svg>
           </span>
-          <span class="tile-label">Weight</span>
+          <span class="tile-label" data-i18n="tile_weight">Weight</span>
           <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
 
@@ -101,15 +105,15 @@
           <span class="icon-badge badge-orange">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="9" width="3" height="6" rx="1"/><rect x="18.5" y="9" width="3" height="6" rx="1"/><path d="M5.5 12h13"/><rect x="6.5" y="7.5" width="1.6" height="9" rx="0.6"/><rect x="15.9" y="7.5" width="1.6" height="9" rx="0.6"/></svg>
           </span>
-          <span class="tile-label">Training</span>
+          <span class="tile-label" data-i18n="tile_training">Training</span>
           <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
 
-        <button class="tile-btn" onclick="comingSoon('Training Timers')">
+        <button class="tile-btn" onclick="comingSoon('feature_training_timers')">
           <span class="icon-badge badge-violet">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V9"/><path d="M9 2h6"/></svg>
           </span>
-          <span class="tile-label">Training Timers</span>
+          <span class="tile-label" data-i18n="tile_training_timers">Training Timers</span>
           <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
 
@@ -117,7 +121,7 @@
           <span class="icon-badge badge-gray">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V12"/><path d="M10.5 20V7"/><path d="M17 20V4"/></svg>
           </span>
-          <span class="tile-label">Reports</span>
+          <span class="tile-label" data-i18n="tile_reports">Reports</span>
           <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
 
@@ -125,7 +129,7 @@
           <span class="icon-badge badge-gray">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3.9a7.6 7.6 0 0 0-1.8-1L15 3.5h-4l-.3 2.5a7.6 7.6 0 0 0-1.8 1l-2.3-.9-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9a7.6 7.6 0 0 0 1.8 1l.3 2.5h4l.3-2.5a7.6 7.6 0 0 0 1.8-1l2.3.9 2-3.4-2-1.5Z"/></svg>
           </span>
-          <span class="tile-label">Settings</span>
+          <span class="tile-label" data-i18n="tile_settings">Settings</span>
           <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
         </button>
       </div>
@@ -134,15 +138,26 @@
   </div>
 
   <script type="module">
-    import { login, signup, applyUserTheme } from './db.js';
+    import { login, signup, applyUserTheme, applyUserLanguage } from './db.js';
+    import { translatePage, t } from './i18n.js';
     window.__login = login;
     window.__signup = signup;
     window.__applyUserTheme = applyUserTheme;
+    window.__t = t;
 
-    // Reconciles the theme against Firestore for the case where the page
-    // loads already-logged-in (module executes after the classic script
-    // below has already shown the welcome/menu screen from cached data).
+    let currentLang = 'en';
+    window.__getCurrentLang = () => currentLang;
+
+    // Reconciles theme + language against Firestore for the case where the
+    // page loads already-logged-in (module executes after the classic
+    // script below has already shown the welcome/menu screen from cached
+    // data).
     applyUserTheme();
+    applyUserLanguage().then(lang => {
+      currentLang = lang;
+      translatePage(lang);
+      if (window.__refreshDynamicText) window.__refreshDynamicText();
+    });
   </script>
 
   <script>
@@ -158,8 +173,12 @@
       document.getElementById(id).classList.add('active');
     }
 
-    function comingSoon(feature) {
-      alert(feature + ' - coming soon');
+    function comingSoon(featureKey) {
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const t = window.__t;
+      const feature = t ? t(featureKey, lang) : featureKey;
+      const suffix = t ? t('coming_soon', lang) : 'coming soon';
+      alert(feature + ' - ' + suffix);
     }
 
     function setAuthMode(mode) {
@@ -168,18 +187,27 @@
       document.getElementById('auth-username').value = '';
       document.getElementById('auth-password').value = '';
 
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const t = window.__t;
+
       if (mode === 'login') {
-        document.getElementById('auth-title').textContent = 'Log In';
-        document.getElementById('auth-subtext').textContent = 'Welcome back. Enter your username and password.';
-        document.getElementById('auth-submit-btn').textContent = 'Log In';
+        document.getElementById('auth-title').setAttribute('data-i18n', 'auth_login_title');
+        document.getElementById('auth-subtext').setAttribute('data-i18n', 'auth_login_subtext');
+        document.getElementById('auth-submit-btn').setAttribute('data-i18n', 'auth_login_btn');
         document.getElementById('toggle-to-signup').style.display = 'block';
         document.getElementById('toggle-to-login').style.display = 'none';
       } else {
-        document.getElementById('auth-title').textContent = 'Sign Up';
-        document.getElementById('auth-subtext').textContent = 'Choose a username and password. Anyone can join.';
-        document.getElementById('auth-submit-btn').textContent = 'Sign Up';
+        document.getElementById('auth-title').setAttribute('data-i18n', 'auth_signup_title');
+        document.getElementById('auth-subtext').setAttribute('data-i18n', 'auth_signup_subtext');
+        document.getElementById('auth-submit-btn').setAttribute('data-i18n', 'auth_signup_btn');
         document.getElementById('toggle-to-signup').style.display = 'none';
         document.getElementById('toggle-to-login').style.display = 'block';
+      }
+
+      if (t) {
+        document.getElementById('auth-title').textContent = t(document.getElementById('auth-title').getAttribute('data-i18n'), lang);
+        document.getElementById('auth-subtext').textContent = t(document.getElementById('auth-subtext').getAttribute('data-i18n'), lang);
+        document.getElementById('auth-submit-btn').textContent = t(document.getElementById('auth-submit-btn').getAttribute('data-i18n'), lang);
       }
     }
 
@@ -190,7 +218,8 @@
       errorEl.textContent = '';
 
       if (!username || !password) {
-        errorEl.textContent = 'Please enter a username and password.';
+        const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+        errorEl.textContent = window.__t ? window.__t('err_enter_username_password', lang) : 'Please enter a username and password.';
         return;
       }
 
@@ -210,8 +239,19 @@
     function doLogout() {
       localStorage.removeItem(SESSION_KEY);
       localStorage.removeItem('helth_theme');
+      localStorage.removeItem('helth_lang');
       window.location.href = 'index.html';
     }
+
+    function refreshDynamicText() {
+      const username = getLocalUser();
+      if (!username) return;
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      if (window.__t) {
+        document.getElementById('welcome-headline').textContent = window.__t('welcome_headline', lang, { username });
+      }
+    }
+    window.__refreshDynamicText = refreshDynamicText;
 
     async function enterApp() {
       const username = getLocalUser();
@@ -225,6 +265,8 @@
           // keep whatever theme is already applied
         }
       }
+
+      refreshDynamicText();
 
       if (window.location.hash === '#menu') {
         showScreen('menu-screen');

@@ -8,6 +8,10 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
+  if (localStorage.getItem('helth_lang') === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
   if (!localStorage.getItem('helth_user')) {
     window.location.replace('index.html');
   }
@@ -50,35 +54,56 @@
       <div class="settings-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3.9a7.6 7.6 0 0 0-1.8-1L15 3.5h-4l-.3 2.5a7.6 7.6 0 0 0-1.8 1l-2.3-.9-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9a7.6 7.6 0 0 0 1.8 1l.3 2.5h4l.3-2.5a7.6 7.6 0 0 0 1.8-1l2.3.9 2-3.4-2-1.5Z"/></svg>
       </div>
-      <p class="eyebrow">Helth</p>
-      <h1 class="headline">Settings</h1>
-      <p class="subtext">These preferences are saved to your account and apply everywhere you log in.</p>
+      <p class="eyebrow" data-i18n="eyebrow_helth">Helth</p>
+      <h1 class="headline" data-i18n="headline_settings">Settings</h1>
+      <p class="subtext" data-i18n="settings_subtext">These preferences are saved to your account and apply everywhere you log in.</p>
 
-      <p class="settings-section-label">Appearance</p>
+      <p class="settings-section-label" data-i18n="section_appearance">Appearance</p>
       <div class="range-filter" id="theme-toggle" style="margin-bottom:8px;">
-        <button class="range-pill" data-theme-choice="light">Bright Mode</button>
-        <button class="range-pill" data-theme-choice="dark">Dark Mode</button>
+        <button class="range-pill" data-theme-choice="light" data-i18n="bright_mode">Bright Mode</button>
+        <button class="range-pill" data-theme-choice="dark" data-i18n="dark_mode">Dark Mode</button>
       </div>
       <div class="error" id="theme-status" style="min-height:18px; color: var(--text-secondary);"></div>
 
+      <p class="settings-section-label" data-i18n="section_language" style="margin-top:18px;">Language</p>
+      <div class="range-filter" id="lang-toggle" style="margin-bottom:8px;">
+        <button class="range-pill" data-lang-choice="en" data-i18n="lang_english">English</button>
+        <button class="range-pill" data-lang-choice="he" data-i18n="lang_hebrew">Hebrew</button>
+      </div>
+      <div class="error" id="lang-status" style="min-height:18px; color: var(--text-secondary);"></div>
+
       <a class="back-link" href="index.html#menu">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-        Back to home
+        <span data-i18n="back_home">Back to home</span>
       </a>
     </div>
   </div>
 
   <script type="module">
-    import { saveThemePreference, applyUserTheme } from './db.js';
+    import { saveThemePreference, applyUserTheme, saveLanguagePreference, applyUserLanguage } from './db.js';
+    import { translatePage, t } from './i18n.js';
     window.__saveThemePreference = saveThemePreference;
     window.__applyUserTheme = applyUserTheme;
+    window.__saveLanguagePreference = saveLanguagePreference;
+    window.__t = t;
+    window.__translatePage = translatePage;
+
+    let currentLang = 'en';
+    window.__getCurrentLang = () => currentLang;
+    window.__setCurrentLang = (lang) => { currentLang = lang; };
 
     // Reconciles against Firestore (correcting any stale/leftover cached
     // value, e.g. from a previous account on this device) then reflects
-    // the result in the pill selection.
+    // the result in the pill selections.
     applyUserTheme().then(() => {
       const resolved = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-      window.__markActivePill(resolved);
+      window.__markActiveThemePill(resolved);
+    });
+
+    applyUserLanguage().then(lang => {
+      currentLang = lang;
+      translatePage(lang);
+      window.__markActiveLangPill(lang);
     });
   </script>
 
@@ -92,7 +117,7 @@
       localStorage.setItem('helth_theme', theme);
     }
 
-    function markActivePill(theme) {
+    function markActiveThemePill(theme) {
       document.querySelectorAll('#theme-toggle .range-pill').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.themeChoice === theme);
       });
@@ -100,15 +125,46 @@
 
     async function chooseTheme(theme) {
       applyTheme(theme);
-      markActivePill(theme);
+      markActiveThemePill(theme);
       const statusEl = document.getElementById('theme-status');
-      statusEl.textContent = 'Saving…';
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const t = window.__t;
+      statusEl.textContent = t ? t('saving_ellipsis', lang) : 'Saving…';
       try {
         await window.__saveThemePreference(theme);
-        statusEl.textContent = 'Saved';
+        statusEl.textContent = t ? t('saved_title', lang) : 'Saved';
         setTimeout(() => { statusEl.textContent = ''; }, 1500);
       } catch (err) {
-        statusEl.textContent = 'Could not save: ' + err.message;
+        statusEl.textContent = (t ? t('could_not_save_prefix', lang) : 'Could not save: ') + err.message;
+      }
+    }
+
+    function applyDir(lang) {
+      document.documentElement.setAttribute('lang', lang === 'he' ? 'he' : 'en');
+      document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
+      localStorage.setItem('helth_lang', lang);
+    }
+
+    function markActiveLangPill(lang) {
+      document.querySelectorAll('#lang-toggle .range-pill').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.langChoice === lang);
+      });
+    }
+
+    async function chooseLang(lang) {
+      applyDir(lang);
+      markActiveLangPill(lang);
+      if (window.__setCurrentLang) window.__setCurrentLang(lang);
+      if (window.__translatePage) window.__translatePage(lang);
+      const statusEl = document.getElementById('lang-status');
+      const t = window.__t;
+      statusEl.textContent = t ? t('saving_ellipsis', lang) : 'Saving…';
+      try {
+        await window.__saveLanguagePreference(lang);
+        statusEl.textContent = t ? t('saved_title', lang) : 'Saved';
+        setTimeout(() => { statusEl.textContent = ''; }, 1500);
+      } catch (err) {
+        statusEl.textContent = (t ? t('could_not_save_prefix', lang) : 'Could not save: ') + err.message;
       }
     }
 
@@ -116,12 +172,19 @@
       btn.addEventListener('click', () => chooseTheme(btn.dataset.themeChoice));
     });
 
+    document.querySelectorAll('#lang-toggle .range-pill').forEach(btn => {
+      btn.addEventListener('click', () => chooseLang(btn.dataset.langChoice));
+    });
+
     // Reflect whatever is already applied (from cache) immediately; the
     // module script above reconciles against Firestore shortly after.
     const cachedTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
-    markActivePill(cachedTheme);
+    markActiveThemePill(cachedTheme);
+    const cachedLang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+    markActiveLangPill(cachedLang);
 
-    window.__markActivePill = markActivePill;
+    window.__markActiveThemePill = markActiveThemePill;
+    window.__markActiveLangPill = markActiveLangPill;
   </script>
 
 </body>

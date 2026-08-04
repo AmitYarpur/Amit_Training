@@ -8,6 +8,10 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
+  if (localStorage.getItem('helth_lang') === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
   if (!localStorage.getItem('helth_user')) {
     window.location.replace('index.html');
   }
@@ -195,30 +199,30 @@
 <body class="viz-root">
 
   <div class="wrap">
-    <p class="eyebrow">Reports</p>
-    <h1 class="headline">Blood Pressure Report</h1>
+    <p class="eyebrow" data-i18n="eyebrow_reports">Reports</p>
+    <h1 class="headline" data-i18n="headline_bp_report">Blood Pressure Report</h1>
     <p class="subtext" style="margin:-4px 0 0;" id="report-user-line"></p>
     <a class="back-link" href="reports.html">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-      Back to reports
+      <span data-i18n="back_reports">Back to reports</span>
     </a>
 
     <div class="card" style="margin-top:20px;">
-      <div id="state-msg" class="state-msg">Loading readings…</div>
+      <div id="state-msg" class="state-msg" data-i18n="loading_readings">Loading readings…</div>
 
       <div id="content" style="display:none;">
         <div class="range-filter" id="range-filter">
-          <button class="range-pill" data-range="7">Last Week</button>
-          <button class="range-pill" data-range="30">Last Month</button>
-          <button class="range-pill" data-range="90">Last 3 Months</button>
-          <button class="range-pill" data-range="365">Last Year</button>
-          <button class="range-pill" data-range="all">All Time</button>
+          <button class="range-pill" data-range="7" data-i18n="range_week">Last Week</button>
+          <button class="range-pill" data-range="30" data-i18n="range_month">Last Month</button>
+          <button class="range-pill" data-range="90" data-i18n="range_3months">Last 3 Months</button>
+          <button class="range-pill" data-range="365" data-i18n="range_year">Last Year</button>
+          <button class="range-pill" data-range="all" data-i18n="range_all">All Time</button>
         </div>
 
         <div class="legend">
-          <div class="legend-item"><span class="legend-key" style="background:var(--series-systolic)"></span>Systolic</div>
-          <div class="legend-item"><span class="legend-key" style="background:var(--series-diastolic)"></span>Diastolic</div>
-          <div class="legend-item"><span class="legend-key" style="background:var(--series-heart)"></span>Heart rate</div>
+          <div class="legend-item"><span class="legend-key" style="background:var(--series-systolic)"></span><span data-i18n="legend_systolic">Systolic</span></div>
+          <div class="legend-item"><span class="legend-key" style="background:var(--series-diastolic)"></span><span data-i18n="legend_diastolic">Diastolic</span></div>
+          <div class="legend-item"><span class="legend-key" style="background:var(--series-heart)"></span><span data-i18n="legend_heart_rate">Heart rate</span></div>
         </div>
 
         <div id="range-empty-msg" class="state-msg" style="display:none;"></div>
@@ -228,7 +232,7 @@
           <div class="tooltip" id="tooltip"></div>
         </div>
 
-        <button class="btn-primary" id="export-btn" onclick="exportCsv()" style="margin-top:16px;">Export to CSV</button>
+        <button class="btn-primary" id="export-btn" onclick="exportCsv()" style="margin-top:16px;" data-i18n="export_csv">Export to CSV</button>
       </div>
     </div>
 
@@ -236,7 +240,7 @@
       <div style="overflow-x:auto;">
         <table>
           <thead>
-            <tr><th>Date</th><th>Time</th><th>Systolic</th><th>Diastolic</th><th>Heart rate</th></tr>
+            <tr><th data-i18n="table_date">Date</th><th data-i18n="table_time">Time</th><th data-i18n="legend_systolic">Systolic</th><th data-i18n="legend_diastolic">Diastolic</th><th data-i18n="legend_heart_rate">Heart rate</th></tr>
           </thead>
           <tbody id="table-body"></tbody>
         </table>
@@ -245,24 +249,31 @@
   </div>
 
   <script type="module">
-    import { getBloodPressureSessions, applyUserTheme } from './db.js';
+    import { getBloodPressureSessions, applyUserTheme, applyUserLanguage } from './db.js';
+    import { translatePage, t } from './i18n.js';
     applyUserTheme();
 
-    const SERIES = [
-      { key: 'systolic',   label: 'Systolic',   color: 'var(--series-systolic)',  hex: '#2a78d6' },
-      { key: 'diastolic',  label: 'Diastolic',  color: 'var(--series-diastolic)', hex: '#eb6834' },
-      { key: 'heart_rate', label: 'Heart rate', color: 'var(--series-heart)',     hex: '#1baf7a' }
-    ];
+    let currentLang = 'en';
+
+    function series() {
+      return [
+        { key: 'systolic',   label: t('legend_systolic', currentLang),   hex: '#2a78d6' },
+        { key: 'diastolic',  label: t('legend_diastolic', currentLang),  hex: '#eb6834' },
+        { key: 'heart_rate', label: t('legend_heart_rate', currentLang), hex: '#1baf7a' }
+      ];
+    }
 
     let allSessions = [];
     let sessions = [];
     let currentRangeDays = 'all';
 
     function formatDate(d) {
-      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const locale = currentLang === 'he' ? 'he-IL' : undefined;
+      return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
     }
     function formatTime(d) {
-      return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+      const locale = currentLang === 'he' ? 'he-IL' : undefined;
+      return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
     }
 
     function renderTable() {
@@ -302,7 +313,7 @@
       const plotW = W - padL - padR;
       const plotH = H - padT - padB;
 
-      const allValues = sessions.flatMap(s => SERIES.map(sr => s[sr.key]).filter(v => v != null));
+      const allValues = sessions.flatMap(s => series().map(sr => s[sr.key]).filter(v => v != null));
       let yMin = Math.min(...allValues);
       let yMax = Math.max(...allValues);
       yMin = Math.floor((yMin - 5) / 10) * 10;
@@ -353,7 +364,7 @@
       });
 
       // lines + markers per series
-      SERIES.forEach(sr => {
+      series().forEach(sr => {
         const points = sessions
           .map((s, i) => (s[sr.key] != null ? [x(i), y(s[sr.key])] : null))
           .filter(Boolean);
@@ -416,7 +427,7 @@
         dateEl.textContent = formatDate(s.recordedAt) + ' · ' + formatTime(s.recordedAt);
         tooltip.appendChild(dateEl);
 
-        SERIES.forEach(sr => {
+        series().forEach(sr => {
           if (s[sr.key] == null) return;
           const row = document.createElement('div');
           row.className = 'tt-row';
@@ -463,7 +474,10 @@
     }
 
     function toCsv() {
-      const header = ['Date', 'Time', 'Systolic', 'Diastolic', 'Heart Rate'];
+      const header = [
+        t('table_date', currentLang), t('table_time', currentLang),
+        t('legend_systolic', currentLang), t('legend_diastolic', currentLang), t('legend_heart_rate', currentLang)
+      ];
       const rows = sessions.map(s => [
         formatDate(s.recordedAt),
         formatTime(s.recordedAt),
@@ -502,7 +516,7 @@
       const exportBtn = document.getElementById('export-btn');
 
       if (sessions.length === 0) {
-        emptyMsg.textContent = 'No readings in this range.';
+        emptyMsg.textContent = t('no_readings_in_range', currentLang);
         emptyMsg.style.display = 'block';
         chartContainer.style.display = 'none';
         exportBtn.style.display = 'none';
@@ -541,17 +555,21 @@
     });
 
     async function init() {
-      document.getElementById('report-user-line').textContent = 'for ' + localStorage.getItem('helth_user');
+      currentLang = await applyUserLanguage();
+      translatePage(currentLang);
+
+      document.getElementById('report-user-line').textContent = t('for_user_prefix', currentLang) + localStorage.getItem('helth_user');
+      document.getElementById('state-msg').textContent = t('loading_readings', currentLang);
 
       try {
         allSessions = await getBloodPressureSessions();
       } catch (err) {
-        document.getElementById('state-msg').textContent = 'Could not load readings: ' + err.message;
+        document.getElementById('state-msg').textContent = t('could_not_load_readings', currentLang) + err.message;
         return;
       }
 
       if (allSessions.length === 0) {
-        document.getElementById('state-msg').textContent = 'No blood pressure readings logged yet.';
+        document.getElementById('state-msg').textContent = t('no_bp_logged', currentLang);
         return;
       }
 
