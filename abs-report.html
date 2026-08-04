@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2a78d6">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Helth">
+<title>Abs Report</title>
+<script>
+  if (localStorage.getItem('helth_theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  window.__getCurrentLang = function () { return window.__lang; };
+  if (window.__lang === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
+  if (!localStorage.getItem('helth_user')) {
+    window.location.replace('index.html');
+  }
+</script>
+<script src="i18n.js"></script>
+<script>
+  window.__t = window.I18N.t;
+</script>
+<link rel="stylesheet" href="styles.css">
+
+<style>
+  /* Same fixed "paper" surface concept as the other reports' charts,
+     kept independent of app theme for consistency across the Reports
+     section - here it's behind stat tiles instead of a line chart,
+     since workout type is categorical, not a continuous quantity. */
+  .viz-root {
+    --chart-surface:  #e3e3e0;
+    --chart-ink:      #0b0b0b;
+    --chart-muted:    #6d6c66;
+    --gridline:       #cbcac5;
+  }
+
+  body.viz-root {
+    padding: 20px;
+    display: block;
+  }
+
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .wrap h1.headline {
+    font-size: 22px;
+    margin: 4px 0 4px;
+  }
+
+  .card {
+    margin-bottom: 20px;
+  }
+
+  .state-msg {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 30px 10px;
+  }
+
+  .stat-tile-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .stat-tile {
+    flex: 1 1 140px;
+    background: var(--chart-surface);
+    border-radius: 14px;
+    padding: 18px 12px;
+    text-align: center;
+  }
+
+  .stat-tile .stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--chart-ink);
+  }
+
+  .stat-tile .stat-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--chart-muted);
+    margin-top: 6px;
+    direction: ltr;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--gridline);
+    font-variant-numeric: tabular-nums;
+  }
+
+  th {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+
+  td.num {
+    color: var(--text-primary);
+  }
+
+  /* Workout type values always stay in English (see script below). */
+  td.workout-type {
+    direction: ltr;
+    text-align: left;
+  }
+
+</style>
+</head>
+<body class="viz-root">
+
+  <div class="wrap">
+    <p class="eyebrow" data-i18n="eyebrow_reports">Reports</p>
+    <h1 class="headline" data-i18n="headline_abs_report">Abs Report</h1>
+    <p class="subtext" style="margin:-4px 0 0;" id="report-user-line"></p>
+
+    <div class="card" style="margin-top:20px;">
+      <div id="state-msg" class="state-msg" data-i18n="loading_sessions">Loading sessions…</div>
+
+      <div id="content" style="display:none;">
+        <div class="range-filter" id="range-filter">
+          <button class="range-pill" data-range="7" data-i18n="range_week">Last Week</button>
+          <button class="range-pill" data-range="30" data-i18n="range_month">Last Month</button>
+          <button class="range-pill" data-range="90" data-i18n="range_3months">Last 3 Months</button>
+          <button class="range-pill" data-range="365" data-i18n="range_year">Last Year</button>
+          <button class="range-pill" data-range="all" data-i18n="range_all">All Time</button>
+        </div>
+
+        <div id="range-empty-msg" class="state-msg" style="display:none;"></div>
+
+        <div id="stats-container">
+          <div class="stat-tile-row" id="stat-tiles"></div>
+        </div>
+
+        <button class="btn-primary" id="export-btn" onclick="exportCsv()" style="margin-top:16px;" data-i18n="export_csv">Export to CSV</button>
+      </div>
+    </div>
+
+    <div class="card" id="table-card" style="display:none;">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th data-i18n="table_date">Date</th><th data-i18n="table_time">Time</th><th data-i18n="field_workout_type">Workout Type</th></tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <a class="back-fab" href="training-reports.html" data-i18n-aria="back_training_reports" aria-label="Back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </a>
+
+  <script>
+    window.I18N.translatePage(window.__lang);
+  </script>
+
+  <script type="module">
+    import { getTrainingSessions, applyUserTheme, applyUserLanguage } from './db.js';
+    const t = window.I18N.t;
+
+    let currentLang = 'en';
+    let allSessions = [];
+    let sessions = [];
+    let currentRangeDays = 'all';
+
+    // Workout type choices are fixed, English, and shown in this order
+    // regardless of app language - matches the entry page's 3 options.
+    const WORKOUT_TYPES = ['6 min Abs', '3 sets of abs', 'Other workout'];
+
+    function formatDate(d) {
+      const locale = currentLang === 'he' ? 'he-IL' : undefined;
+      return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+    }
+    function formatTime(d) {
+      const locale = currentLang === 'he' ? 'he-IL' : undefined;
+      return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function renderStats() {
+      const counts = {};
+      WORKOUT_TYPES.forEach(w => { counts[w] = 0; });
+      sessions.forEach(s => {
+        counts[s.workoutType] = (counts[s.workoutType] || 0) + 1;
+      });
+
+      const row = document.getElementById('stat-tiles');
+      row.innerHTML = '';
+      WORKOUT_TYPES.forEach(w => {
+        const tile = document.createElement('div');
+        tile.className = 'stat-tile';
+
+        const value = document.createElement('div');
+        value.className = 'stat-value';
+        value.textContent = counts[w];
+
+        const label = document.createElement('div');
+        label.className = 'stat-label';
+        label.textContent = w;
+
+        tile.appendChild(value);
+        tile.appendChild(label);
+        row.appendChild(tile);
+      });
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+      [...sessions].reverse().forEach(s => {
+        const tr = document.createElement('tr');
+
+        const dateTd = document.createElement('td');
+        dateTd.textContent = formatDate(s.recordedAt);
+        const timeTd = document.createElement('td');
+        timeTd.textContent = formatTime(s.recordedAt);
+        const workoutTd = document.createElement('td');
+        workoutTd.className = 'workout-type';
+        workoutTd.textContent = s.workoutType;
+
+        tr.appendChild(dateTd);
+        tr.appendChild(timeTd);
+        tr.appendChild(workoutTd);
+        tbody.appendChild(tr);
+      });
+      document.getElementById('table-card').style.display = 'block';
+    }
+
+    function toCsv() {
+      const header = [t('table_date', currentLang), t('table_time', currentLang), 'Workout Type'];
+      const rows = sessions.map(s => [formatDate(s.recordedAt), formatTime(s.recordedAt), s.workoutType]);
+      return [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    }
+
+    window.exportCsv = function () {
+      const csv = toCsv();
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'abs-sessions.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    function applyRange() {
+      const emptyMsg = document.getElementById('range-empty-msg');
+
+      if (currentRangeDays === 'all') {
+        sessions = allSessions;
+      } else {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - currentRangeDays);
+        sessions = allSessions.filter(s => s.recordedAt >= cutoff);
+      }
+
+      const statsContainer = document.getElementById('stats-container');
+      const exportBtn = document.getElementById('export-btn');
+
+      if (sessions.length === 0) {
+        emptyMsg.textContent = t('no_sessions_in_range', currentLang);
+        emptyMsg.style.display = 'block';
+        statsContainer.style.display = 'none';
+        exportBtn.style.display = 'none';
+        document.getElementById('table-card').style.display = 'none';
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+      statsContainer.style.display = 'block';
+      exportBtn.style.display = 'block';
+      renderStats();
+      renderTable();
+    }
+
+    function setupRangeFilter() {
+      const buttons = Array.from(document.querySelectorAll('.range-pill'));
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const range = btn.dataset.range;
+          currentRangeDays = range === 'all' ? 'all' : Number(range);
+          buttons.forEach(b => b.classList.toggle('active', b === btn));
+          applyRange();
+        });
+      });
+      const defaultBtn = buttons.find(b => b.dataset.range === 'all');
+      defaultBtn.classList.add('active');
+    }
+
+    async function init() {
+      currentLang = await applyUserLanguage();
+      window.__lang = currentLang;
+      window.I18N.translatePage(currentLang);
+      applyUserTheme();
+
+      document.getElementById('report-user-line').textContent = t('for_user_prefix', currentLang) + localStorage.getItem('helth_user');
+      document.getElementById('state-msg').textContent = t('loading_sessions', currentLang);
+
+      try {
+        allSessions = await getTrainingSessions('abs');
+      } catch (err) {
+        document.getElementById('state-msg').textContent = t('could_not_load_sessions', currentLang) + err.message;
+        return;
+      }
+
+      if (allSessions.length === 0) {
+        document.getElementById('state-msg').textContent = t('no_abs_logged', currentLang);
+        return;
+      }
+
+      document.getElementById('state-msg').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      setupRangeFilter();
+      applyRange();
+    }
+
+    init();
+  </script>
+
+</body>
+</html>

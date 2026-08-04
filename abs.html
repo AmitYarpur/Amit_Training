@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2a78d6">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Helth">
+<title>Abs</title>
+<script>
+  if (localStorage.getItem('helth_theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  window.__getCurrentLang = function () { return window.__lang; };
+  if (window.__lang === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
+  if (!localStorage.getItem('helth_user')) {
+    window.location.replace('index.html');
+  }
+</script>
+<script src="i18n.js"></script>
+<script>
+  window.__t = window.I18N.t;
+</script>
+<link rel="stylesheet" href="styles.css">
+
+<style>
+  .card.hidden { display: none; }
+
+  #submit-btn {
+    margin-top: 22px;
+  }
+
+  /* Workout type choices always stay in English (see script below), so
+     this row is intentionally excluded from RTL mirroring/translation. */
+  #workout-tiles {
+    direction: ltr;
+    text-align: left;
+  }
+</style>
+</head>
+<body>
+
+  <div class="page">
+
+    <!-- Screen 1: choose workout type -->
+    <div class="card" id="entry-screen">
+      <p class="eyebrow" data-i18n="tile_abs">Abs</p>
+      <h1 class="headline" id="datetime-headline" style="font-size:18px;">Today is the ...</h1>
+
+      <div class="tile-list" id="workout-tiles" style="margin-top:18px;">
+        <button class="tile-btn" data-workout="6 min Abs" onclick="selectWorkout(this)">
+          <span class="icon-badge badge-pink">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3.5" width="10" height="17" rx="4"/><path d="M12 3.5v17"/><path d="M7 8.5h10"/><path d="M7 13.5h10"/></svg>
+          </span>
+          <span class="tile-label">6 min Abs</span>
+        </button>
+
+        <button class="tile-btn" data-workout="3 sets of abs" onclick="selectWorkout(this)">
+          <span class="icon-badge badge-violet">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3.5" width="10" height="17" rx="4"/><path d="M12 3.5v17"/><path d="M7 8.5h10"/><path d="M7 13.5h10"/></svg>
+          </span>
+          <span class="tile-label">3 sets of abs</span>
+        </button>
+
+        <button class="tile-btn" data-workout="Other workout" onclick="selectWorkout(this)">
+          <span class="icon-badge badge-gray">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3.5" width="10" height="17" rx="4"/><path d="M12 3.5v17"/><path d="M7 8.5h10"/><path d="M7 13.5h10"/></svg>
+          </span>
+          <span class="tile-label">Other workout</span>
+        </button>
+      </div>
+
+      <div class="error" id="entry-error" style="text-align:center; margin-top:10px;"></div>
+
+      <button class="btn-primary" id="submit-btn" onclick="openSummary()" data-i18n="submit">Submit</button>
+    </div>
+
+    <!-- Screen 2: approved value shown after saving -->
+    <div class="card hidden" id="saved-screen" style="text-align:center;">
+      <div class="checkmark-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h2 class="headline" style="text-align:center;" data-i18n="saved_title">Saved</h2>
+      <div class="summary-row"><span data-i18n="field_workout_type">Workout Type</span><span class="value" id="saved-workout" style="direction:ltr;"></span></div>
+
+      <button class="btn-primary" onclick="startNewSession()" style="margin-top:22px;" data-i18n="log_another_session">Log another session</button>
+    </div>
+
+  </div>
+
+  <!-- Are you sure -->
+  <div class="overlay" id="confirm-overlay">
+    <div class="modal">
+      <h2 data-i18n="are_you_sure">Are you sure?</h2>
+      <div class="summary-row"><span data-i18n="field_workout_type">Workout Type</span><span class="value" id="confirm-workout" style="direction:ltr;"></span></div>
+      <div class="row" style="margin-top:20px;">
+        <button class="btn-secondary" onclick="closeModals()" data-i18n="edit">Edit</button>
+        <button class="btn-primary" id="confirm-save-btn" onclick="submitSession()" data-i18n="yes_save">Yes, Save</button>
+      </div>
+    </div>
+  </div>
+
+  <a class="back-fab" href="training.html" data-i18n-aria="back_training" aria-label="Back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </a>
+
+  <script>
+    window.I18N.translatePage(window.__lang);
+  </script>
+
+  <script type="module">
+    import { saveTrainingSession, applyUserTheme, applyUserLanguage } from './db.js';
+    window.__saveTrainingSession = (values) => saveTrainingSession('abs', values);
+    applyUserTheme();
+
+    applyUserLanguage().then(lang => {
+      window.__lang = lang;
+      window.I18N.translatePage(lang);
+      if (window.__updateHeadline) window.__updateHeadline();
+    });
+  </script>
+
+  <script>
+    function updateHeadline() {
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const locale = lang === 'he' ? 'he-IL' : undefined;
+      const now = new Date();
+      const dateStr = now.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const timeStr = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const headline = window.__t ? window.__t('today_headline', lang, { date: dateStr, time: timeStr }) : `Today is the ${dateStr} and ${timeStr}`;
+      document.getElementById('datetime-headline').textContent = headline;
+    }
+    window.__updateHeadline = updateHeadline;
+    updateHeadline();
+    setInterval(updateHeadline, 1000);
+
+    let selectedWorkout = null;
+
+    function selectWorkout(btn) {
+      document.querySelectorAll('#workout-tiles .tile-btn').forEach(b => b.classList.remove('filled'));
+      btn.classList.add('filled');
+      selectedWorkout = btn.dataset.workout;
+      document.getElementById('entry-error').textContent = '';
+    }
+
+    function openSummary() {
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      if (!selectedWorkout) {
+        document.getElementById('entry-error').textContent = window.__t ? window.__t('err_abs_missing', lang) : 'Please choose a workout type before submitting.';
+        return;
+      }
+      document.getElementById('entry-error').textContent = '';
+      document.getElementById('confirm-workout').textContent = selectedWorkout;
+      document.getElementById('confirm-overlay').classList.add('active');
+    }
+
+    async function submitSession() {
+      const btn = document.getElementById('confirm-save-btn');
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      btn.disabled = true;
+      try {
+        await window.__saveTrainingSession({ workoutType: selectedWorkout });
+        closeModals();
+        showSavedScreen();
+      } catch (err) {
+        btn.disabled = false;
+        const prefix = window.__t ? window.__t('err_session_save_failed', lang) : 'Could not save session, please try again.\n';
+        alert(prefix + err.message);
+      }
+    }
+
+    function showSavedScreen() {
+      document.getElementById('saved-workout').textContent = selectedWorkout;
+      document.getElementById('entry-screen').classList.add('hidden');
+      document.getElementById('saved-screen').classList.remove('hidden');
+    }
+
+    function startNewSession() {
+      selectedWorkout = null;
+      document.querySelectorAll('#workout-tiles .tile-btn').forEach(b => b.classList.remove('filled'));
+      document.getElementById('saved-screen').classList.add('hidden');
+      document.getElementById('entry-screen').classList.remove('hidden');
+    }
+
+    function closeModals() {
+      document.getElementById('confirm-overlay').classList.remove('active');
+    }
+
+    window.selectWorkout = selectWorkout;
+    window.openSummary = openSummary;
+    window.submitSession = submitSession;
+    window.startNewSession = startNewSession;
+    window.closeModals = closeModals;
+  </script>
+
+</body>
+</html>

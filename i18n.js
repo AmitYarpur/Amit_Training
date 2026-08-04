@@ -87,6 +87,10 @@ const translations = {
     summary_sessions: "Sessions",
     summary_weight: "Weight",
 
+    // abs.html (workout type choices stay in English regardless of language - by design)
+    field_workout_type: "Workout Type",
+    err_abs_missing: "Please choose a workout type before submitting.",
+
     // training.html
     headline_training: "Training",
     tile_running: "Running",
@@ -124,6 +128,7 @@ const translations = {
     headline_walking_report: "Walking Report",
     headline_pulldown_report: "Pulldown Report",
     headline_bench_press_report: "Bench Press / Butterfly Report",
+    headline_abs_report: "Abs Report",
     for_user_prefix: "for ",
     loading_readings: "Loading readings…",
     loading_sessions: "Loading sessions…",
@@ -133,6 +138,7 @@ const translations = {
     no_walking_logged: "No walking sessions logged yet.",
     no_pulldown_logged: "No pulldown sessions logged yet.",
     no_bench_press_logged: "No bench press / butterfly sessions logged yet.",
+    no_abs_logged: "No abs workouts logged yet.",
     could_not_load_readings: "Could not load readings: ",
     could_not_load_sessions: "Could not load sessions: ",
     range_week: "Last Week",
@@ -152,10 +158,12 @@ const translations = {
     table_distance_km: "Distance (km)",
     table_duration_min: "Duration (min)",
     table_sessions: "Sessions",
+    table_workout_type: "Workout Type",
     unit_km: "km",
     unit_min: "min",
     unit_kg: "kg",
-    unit_sessions_suffix: "sessions"
+    unit_sessions_suffix: "sessions",
+    workout_count_suffix: "times"
   },
 
   he: {
@@ -242,6 +250,10 @@ const translations = {
     summary_sessions: "סטים",
     summary_weight: "משקל",
 
+    // abs.html (workout type choices stay in English regardless of language - by design)
+    field_workout_type: "סוג אימון",
+    err_abs_missing: "נא לבחור סוג אימון לפני השליחה.",
+
     // training.html
     headline_training: "אימונים",
     tile_running: "ריצה",
@@ -279,6 +291,7 @@ const translations = {
     headline_walking_report: "דוח הליכה",
     headline_pulldown_report: "דוח פולי עליון",
     headline_bench_press_report: "דוח לחיצת חזה / פרפר",
+    headline_abs_report: "דוח בטן",
     for_user_prefix: "עבור ",
     loading_readings: "טוען מדידות…",
     loading_sessions: "טוען אימונים…",
@@ -288,6 +301,7 @@ const translations = {
     no_walking_logged: "עדיין לא נרשמו אימוני הליכה.",
     no_pulldown_logged: "עדיין לא נרשמו אימוני פולי עליון.",
     no_bench_press_logged: "עדיין לא נרשמו אימוני לחיצת חזה / פרפר.",
+    no_abs_logged: "עדיין לא נרשמו אימוני בטן.",
     could_not_load_readings: "לא ניתן היה לטעון את המדידות: ",
     could_not_load_sessions: "לא ניתן היה לטעון את האימונים: ",
     range_week: "השבוע האחרון",
@@ -307,10 +321,12 @@ const translations = {
     table_distance_km: "מרחק (ק״מ)",
     table_duration_min: "משך (דקות)",
     table_sessions: "סטים",
+    table_workout_type: "סוג אימון",
     unit_km: "ק״מ",
     unit_min: "דק'",
     unit_kg: "ק״ג",
-    unit_sessions_suffix: "סטים"
+    unit_sessions_suffix: "סטים",
+    workout_count_suffix: "פעמים"
   }
 };
 
