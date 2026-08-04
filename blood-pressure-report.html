@@ -216,10 +216,6 @@
     <p class="eyebrow" data-i18n="eyebrow_reports">Reports</p>
     <h1 class="headline" data-i18n="headline_bp_report">Blood Pressure Report</h1>
     <p class="subtext" style="margin:-4px 0 0;" id="report-user-line"></p>
-    <a class="back-link" href="reports.html">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-      <span data-i18n="back_reports">Back to reports</span>
-    </a>
 
     <div class="card" style="margin-top:20px;">
       <div id="state-msg" class="state-msg" data-i18n="loading_readings">Loading readings…</div>
@@ -606,5 +602,8 @@
     init();
   </script>
 
+  <a class="back-fab" href="reports.html" data-i18n-aria="back_reports" aria-label="Back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </a>
 </body>
 </html>

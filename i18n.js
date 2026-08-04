@@ -326,8 +326,10 @@ function t(key, lang, vars) {
 }
 
 // Applies translations to every element with a data-i18n attribute
-// (textContent) or data-i18n-placeholder (input placeholder), and sets
-// the page's text direction. Call after the DOM for the page is present.
+// (textContent), data-i18n-placeholder (input placeholder), or
+// data-i18n-aria (aria-label, for icon-only controls with no visible
+// text), and sets the page's text direction. Call after the DOM for
+// the page is present.
 function translatePage(lang) {
   document.documentElement.setAttribute('lang', lang === 'he' ? 'he' : 'en');
   document.documentElement.setAttribute('dir', lang === 'he' ? 'rtl' : 'ltr');
@@ -338,6 +340,10 @@ function translatePage(lang) {
 
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
     el.setAttribute('placeholder', t(el.getAttribute('data-i18n-placeholder'), lang));
+  });
+
+  document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+    el.setAttribute('aria-label', t(el.getAttribute('data-i18n-aria'), lang));
   });
 }
 

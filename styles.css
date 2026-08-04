@@ -409,20 +409,33 @@ button {
 .badge-gray   { background: linear-gradient(135deg, #8b95a3, #aeb6c0); }
 .badge-pink   { background: linear-gradient(135deg, #d6558c, #e883ac); }
 
-/* Links */
-.back-link {
-  display: inline-flex;
+/* Back button: fixed bottom-right on every page, same spot regardless of
+   content length or language, so "go back" is always in the same place. */
+.back-fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--accent-gradient);
+  box-shadow: var(--shadow-card);
+  display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 22px;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 600;
+  justify-content: center;
+  z-index: 5;
   text-decoration: none;
+  transition: transform 0.15s ease;
 }
 
-.back-link:active {
-  opacity: 0.7;
+.back-fab svg {
+  width: 24px;
+  height: 24px;
+  stroke: #fff;
+}
+
+.back-fab:active {
+  transform: scale(0.92);
 }
 
 /* Modal overlay */
@@ -530,9 +543,10 @@ button {
   stroke: #fff;
 }
 
-/* RTL (Hebrew): directional icons need mirroring since "forward" and
-   "back" swap sides; layout/flex order already follows dir automatically. */
-[dir="rtl"] .tile-btn .chevron,
-[dir="rtl"] .back-link svg {
+/* RTL (Hebrew): the tile chevron needs mirroring since "forward" swaps
+   sides; layout/flex order already follows dir automatically. The back
+   button stays unmirrored on purpose - same fixed position and icon
+   direction on every page, regardless of language. */
+[dir="rtl"] .tile-btn .chevron {
   transform: scaleX(-1);
 }

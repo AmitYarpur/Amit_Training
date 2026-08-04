@@ -62,10 +62,6 @@
 
       <button class="btn-primary" id="submit-btn" onclick="openSummary()" data-i18n="submit">Submit</button>
 
-      <a class="back-link" href="index.html#menu">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-        <span data-i18n="back_home">Back to home</span>
-      </a>
     </div>
 
     <!-- Screen 2: approved value shown after saving -->
@@ -77,10 +73,6 @@
       <div class="summary-row"><span data-i18n="tile_weight">Weight</span><span class="value" id="saved-weight"></span></div>
 
       <button class="btn-primary" onclick="startNewSession()" style="margin-top:22px;" data-i18n="log_another_reading">Log another reading</button>
-      <a class="back-link" href="index.html#menu">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-        <span data-i18n="back_home">Back to home</span>
-      </a>
     </div>
 
   </div>
@@ -191,5 +183,8 @@
     window.closeModals = closeModals;
   </script>
 
+  <a class="back-fab" href="index.html#menu" data-i18n-aria="back_home" aria-label="Back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </a>
 </body>
 </html>
