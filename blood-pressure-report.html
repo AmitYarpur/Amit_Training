@@ -250,10 +250,33 @@
       <div style="overflow-x:auto;">
         <table>
           <thead>
-            <tr><th data-i18n="table_date">Date</th><th data-i18n="table_time">Time</th><th data-i18n="legend_systolic">Systolic</th><th data-i18n="legend_diastolic">Diastolic</th><th data-i18n="legend_heart_rate">Heart rate</th></tr>
+            <tr><th data-i18n="table_date">Date</th><th data-i18n="table_time">Time</th><th data-i18n="legend_systolic">Systolic</th><th data-i18n="legend_diastolic">Diastolic</th><th data-i18n="legend_heart_rate">Heart rate</th><th data-i18n="table_actions">Actions</th></tr>
           </thead>
           <tbody id="table-body"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="edit-overlay">
+    <div class="modal">
+      <h2 data-i18n="edit">Edit</h2>
+      <div class="field-group">
+        <label data-i18n="field_systolic">Systolic (top number)</label>
+        <input type="number" id="edit-systolic" inputmode="numeric">
+      </div>
+      <div class="field-group">
+        <label data-i18n="field_diastolic">Diastolic (bottom number)</label>
+        <input type="number" id="edit-diastolic" inputmode="numeric">
+      </div>
+      <div class="field-group">
+        <label data-i18n="field_heart_rate">Heart rate</label>
+        <input type="number" id="edit-heart_rate" inputmode="numeric">
+      </div>
+      <div class="error" id="edit-error"></div>
+      <div class="row">
+        <button class="btn-secondary" onclick="closeEditModal()" data-i18n="cancel">Cancel</button>
+        <button class="btn-primary" id="edit-save-btn" onclick="saveEdit()" data-i18n="save">Save</button>
       </div>
     </div>
   </div>
@@ -263,8 +286,12 @@
   </script>
 
   <script type="module">
-    import { getBloodPressureSessions, applyUserTheme, applyUserLanguage } from './db.js';
+    import { getBloodPressureSessions, updateBloodPressureReading, deleteBloodPressureReading, applyUserTheme, applyUserLanguage } from './db.js';
     applyUserTheme();
+
+    const EDIT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    const DELETE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+    let editingId = null;
 
 
     function series() {
@@ -307,10 +334,92 @@
           td.textContent = String(val);
           tr.appendChild(td);
         });
+
+        const actionsTd = document.createElement('td');
+        const actions = document.createElement('div');
+        actions.className = 'row-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'icon-btn';
+        editBtn.setAttribute('aria-label', window.I18N.t('edit', window.__lang));
+        editBtn.innerHTML = EDIT_ICON;
+        editBtn.addEventListener('click', () => openEditModal(s.id));
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'icon-btn icon-btn-danger';
+        deleteBtn.setAttribute('aria-label', window.I18N.t('delete', window.__lang));
+        deleteBtn.innerHTML = DELETE_ICON;
+        deleteBtn.addEventListener('click', () => deleteRow(s.id));
+
+        actions.appendChild(editBtn);
+        actions.appendChild(deleteBtn);
+        actionsTd.appendChild(actions);
+        tr.appendChild(actionsTd);
+
         tbody.appendChild(tr);
       });
       document.getElementById('table-card').style.display = 'block';
     }
+
+    function openEditModal(id) {
+      const s = allSessions.find(x => x.id === id);
+      if (!s) return;
+      editingId = id;
+      document.getElementById('edit-systolic').value = s.systolic;
+      document.getElementById('edit-diastolic').value = s.diastolic;
+      document.getElementById('edit-heart_rate').value = s.heart_rate;
+      document.getElementById('edit-error').textContent = '';
+      document.getElementById('edit-overlay').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-overlay').classList.remove('active');
+      editingId = null;
+    }
+
+    async function saveEdit() {
+      const lang = window.__lang;
+      const systolic = Number(document.getElementById('edit-systolic').value);
+      const diastolic = Number(document.getElementById('edit-diastolic').value);
+      const heart_rate = Number(document.getElementById('edit-heart_rate').value);
+
+      if (![systolic, diastolic, heart_rate].every(v => Number.isFinite(v) && v > 0)) {
+        document.getElementById('edit-error').textContent = window.I18N.t('err_bp_missing', lang);
+        return;
+      }
+
+      const btn = document.getElementById('edit-save-btn');
+      btn.disabled = true;
+      try {
+        await updateBloodPressureReading(editingId, { systolic, diastolic, heart_rate });
+        const s = allSessions.find(x => x.id === editingId);
+        if (s) { s.systolic = systolic; s.diastolic = diastolic; s.heart_rate = heart_rate; }
+        closeEditModal();
+        renderChart();
+        renderTable();
+      } catch (err) {
+        document.getElementById('edit-error').textContent = window.I18N.t('err_update_failed', lang) + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function deleteRow(id) {
+      const lang = window.__lang;
+      if (!confirm(window.I18N.t('confirm_delete_entry', lang))) return;
+      try {
+        await deleteBloodPressureReading(id);
+        allSessions = allSessions.filter(x => x.id !== id);
+        applyRange();
+      } catch (err) {
+        alert(window.I18N.t('err_delete_failed', lang) + err.message);
+      }
+    }
+
+    window.closeEditModal = closeEditModal;
+    window.saveEdit = saveEdit;
 
     function renderChart() {
       const svg = document.getElementById('chart');

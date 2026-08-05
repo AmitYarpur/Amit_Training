@@ -7,6 +7,8 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
+  deleteDoc,
   serverTimestamp,
   query,
   orderBy,
@@ -219,6 +221,20 @@ export async function getBloodPressureSessions(username = getCurrentUser()) {
   });
 }
 
+export async function updateBloodPressureReading(id, values, username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  await updateDoc(doc(db, "users", username, "bloodPressureReadings", id), {
+    systolic: values.systolic,
+    diastolic: values.diastolic,
+    heart_rate: values.heart_rate
+  });
+}
+
+export async function deleteBloodPressureReading(id, username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  await deleteDoc(doc(db, "users", username, "bloodPressureReadings", id));
+}
+
 // --- Weight readings, scoped under the current user (kg) ---------------
 
 function weightCollection(username) {
@@ -248,6 +264,16 @@ export async function getWeightSessions(username = getCurrentUser()) {
       value: data.value
     };
   });
+}
+
+export async function updateWeight(id, value, username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  await updateDoc(doc(db, "users", username, "weightReadings", id), { value });
+}
+
+export async function deleteWeight(id, username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  await deleteDoc(doc(db, "users", username, "weightReadings", id));
 }
 
 // --- Training sessions (running, walking, pulldown, ...), scoped under ----
@@ -283,4 +309,15 @@ export async function getTrainingSessions(kind, username = getCurrentUser()) {
       ...fields
     };
   });
+}
+
+// values: a flat object of whatever fields this exercise type tracks
+export async function updateTrainingSession(kind, id, values, username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  await updateDoc(doc(db, "users", username, kind + "Sessions", id), { ...values });
+}
+
+export async function deleteTrainingSession(kind, id, username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  await deleteDoc(doc(db, "users", username, kind + "Sessions", id));
 }

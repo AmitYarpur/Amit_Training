@@ -14,6 +14,9 @@ const translations = {
     submit: "Submit",
     are_you_sure: "Are you sure?",
     edit: "Edit",
+    delete: "Delete",
+    save: "Save",
+    cancel: "Cancel",
     yes_save: "Yes, Save",
     saved_title: "Saved",
     log_another_reading: "Log another reading",
@@ -163,12 +166,16 @@ const translations = {
     table_sessions: "Sessions",
     table_workout_type: "Workout Type",
     table_seconds: "Duration (sec)",
+    table_actions: "Actions",
     unit_km: "km",
     unit_min: "min",
     unit_kg: "kg",
     unit_sessions_suffix: "sessions",
     unit_sec: "sec",
-    workout_count_suffix: "times"
+    workout_count_suffix: "times",
+    confirm_delete_entry: "Delete this entry? This cannot be undone.",
+    err_update_failed: "Could not update entry, please try again.\n",
+    err_delete_failed: "Could not delete entry, please try again.\n"
   },
 
   he: {
@@ -182,6 +189,9 @@ const translations = {
     submit: "שליחה",
     are_you_sure: "האם אתה בטוח?",
     edit: "עריכה",
+    delete: "מחיקה",
+    save: "שמירה",
+    cancel: "ביטול",
     yes_save: "כן, שמור",
     saved_title: "נשמר",
     log_another_reading: "הוסף מדידה נוספת",
@@ -331,12 +341,16 @@ const translations = {
     table_sessions: "סטים",
     table_workout_type: "סוג אימון",
     table_seconds: "משך (שניות)",
+    table_actions: "פעולות",
     unit_km: "ק״מ",
     unit_min: "דק'",
     unit_kg: "ק״ג",
     unit_sessions_suffix: "סטים",
     unit_sec: "שנ'",
-    workout_count_suffix: "פעמים"
+    workout_count_suffix: "פעמים",
+    confirm_delete_entry: "למחוק את הרשומה הזו? לא ניתן לבטל פעולה זו.",
+    err_update_failed: "לא ניתן היה לעדכן את הרשומה, נסה שוב.\n",
+    err_delete_failed: "לא ניתן היה למחוק את הרשומה, נסה שוב.\n"
   }
 };
 

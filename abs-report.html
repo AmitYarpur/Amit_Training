@@ -162,10 +162,29 @@
       <div style="overflow-x:auto;">
         <table>
           <thead>
-            <tr><th data-i18n="table_date">Date</th><th data-i18n="table_time">Time</th><th data-i18n="field_workout_type">Workout Type</th></tr>
+            <tr><th data-i18n="table_date">Date</th><th data-i18n="table_time">Time</th><th data-i18n="field_workout_type">Workout Type</th><th data-i18n="table_actions">Actions</th></tr>
           </thead>
           <tbody id="table-body"></tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="edit-overlay">
+    <div class="modal">
+      <h2 data-i18n="edit">Edit</h2>
+      <div class="field-group">
+        <label data-i18n="field_workout_type">Workout Type</label>
+        <select id="edit-workout-type">
+          <option value="6 min Abs">6 min Abs</option>
+          <option value="3 sets of abs">3 sets of abs</option>
+          <option value="Other workout">Other workout</option>
+        </select>
+      </div>
+      <div class="error" id="edit-error"></div>
+      <div class="row">
+        <button class="btn-secondary" onclick="closeEditModal()" data-i18n="cancel">Cancel</button>
+        <button class="btn-primary" id="edit-save-btn" onclick="saveEdit()" data-i18n="save">Save</button>
       </div>
     </div>
   </div>
@@ -179,8 +198,12 @@
   </script>
 
   <script type="module">
-    import { getTrainingSessions, applyUserTheme, applyUserLanguage } from './db.js';
+    import { getTrainingSessions, updateTrainingSession, deleteTrainingSession, applyUserTheme, applyUserLanguage } from './db.js';
     const t = window.I18N.t;
+
+    const EDIT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    const DELETE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+    let editingId = null;
 
     let currentLang = 'en';
     let allSessions = [];
@@ -244,10 +267,81 @@
         tr.appendChild(dateTd);
         tr.appendChild(timeTd);
         tr.appendChild(workoutTd);
+
+        const actionsTd = document.createElement('td');
+        const actions = document.createElement('div');
+        actions.className = 'row-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'icon-btn';
+        editBtn.setAttribute('aria-label', t('edit', currentLang));
+        editBtn.innerHTML = EDIT_ICON;
+        editBtn.addEventListener('click', () => openEditModal(s.id));
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'icon-btn icon-btn-danger';
+        deleteBtn.setAttribute('aria-label', t('delete', currentLang));
+        deleteBtn.innerHTML = DELETE_ICON;
+        deleteBtn.addEventListener('click', () => deleteRow(s.id));
+
+        actions.appendChild(editBtn);
+        actions.appendChild(deleteBtn);
+        actionsTd.appendChild(actions);
+        tr.appendChild(actionsTd);
+
         tbody.appendChild(tr);
       });
       document.getElementById('table-card').style.display = 'block';
     }
+
+    function openEditModal(id) {
+      const s = allSessions.find(x => x.id === id);
+      if (!s) return;
+      editingId = id;
+      document.getElementById('edit-workout-type').value = s.workoutType;
+      document.getElementById('edit-error').textContent = '';
+      document.getElementById('edit-overlay').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-overlay').classList.remove('active');
+      editingId = null;
+    }
+
+    async function saveEdit() {
+      const workoutType = document.getElementById('edit-workout-type').value;
+
+      const btn = document.getElementById('edit-save-btn');
+      btn.disabled = true;
+      try {
+        await updateTrainingSession('abs', editingId, { workoutType });
+        const s = allSessions.find(x => x.id === editingId);
+        if (s) { s.workoutType = workoutType; }
+        closeEditModal();
+        renderStats();
+        renderTable();
+      } catch (err) {
+        document.getElementById('edit-error').textContent = t('err_update_failed', currentLang) + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function deleteRow(id) {
+      if (!confirm(t('confirm_delete_entry', currentLang))) return;
+      try {
+        await deleteTrainingSession('abs', id);
+        allSessions = allSessions.filter(x => x.id !== id);
+        applyRange();
+      } catch (err) {
+        alert(t('err_delete_failed', currentLang) + err.message);
+      }
+    }
+
+    window.closeEditModal = closeEditModal;
+    window.saveEdit = saveEdit;
 
     function toCsv() {
       const header = [t('table_date', currentLang), t('table_time', currentLang), 'Workout Type'];

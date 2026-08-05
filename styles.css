@@ -500,6 +500,80 @@ button {
   margin: 0;
 }
 
+/* Row action buttons (edit/delete), used in report page tables */
+.row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  border: none;
+  border-radius: 8px;
+  background: var(--ghost-btn-bg);
+  color: var(--text-secondary);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-btn:active {
+  transform: scale(0.92);
+  background: var(--ghost-btn-bg-active);
+}
+
+.icon-btn.icon-btn-danger {
+  color: #d03b3b;
+}
+
+/* Labeled field groups inside the edit modal (multi-field entries) */
+.modal .field-group {
+  text-align: start;
+  margin-bottom: 12px;
+}
+
+.modal .field-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.modal .field-group input[type="number"],
+.modal .field-group select {
+  width: 100%;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: start;
+  padding: 12px 14px;
+  border: 2px solid var(--border-hairline);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0;
+  color: var(--text-primary);
+  background: var(--field-bg);
+  font-family: inherit;
+}
+
+.modal .field-group select {
+  direction: ltr;
+}
+
+.modal .field-group input[type="number"]:focus,
+.modal .field-group select:focus {
+  outline: none;
+  border-color: var(--accent-1);
+}
+
 .summary-row {
   display: flex;
   justify-content: space-between;
