@@ -175,6 +175,10 @@
     <div class="modal">
       <h2 data-i18n="edit">Edit</h2>
       <div class="field-group">
+        <label data-i18n="table_date">Date</label>
+        <input type="date" id="edit-date">
+      </div>
+      <div class="field-group">
         <label data-i18n="field_workout_type">Workout Type</label>
         <select id="edit-workout-type">
           <option value="6 min Abs">6 min Abs</option>
@@ -222,6 +226,12 @@
     function formatTime(d) {
       const locale = currentLang === 'he' ? 'he-IL' : undefined;
       return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    }
+    function toDateInputValue(d) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
     }
 
     function renderStats() {
@@ -301,6 +311,7 @@
       const s = allSessions.find(x => x.id === id);
       if (!s) return;
       editingId = id;
+      document.getElementById('edit-date').value = toDateInputValue(s.recordedAt);
       document.getElementById('edit-workout-type').value = s.workoutType;
       document.getElementById('edit-error').textContent = '';
       document.getElementById('edit-overlay').classList.add('active');
@@ -312,17 +323,28 @@
     }
 
     async function saveEdit() {
+      const dateStr = document.getElementById('edit-date').value;
       const workoutType = document.getElementById('edit-workout-type').value;
+
+      if (!dateStr) {
+        document.getElementById('edit-error').textContent = t('err_date_missing', currentLang);
+        return;
+      }
+
+      const original = allSessions.find(x => x.id === editingId);
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const recordedAt = new Date(original.recordedAt);
+      recordedAt.setFullYear(y, m - 1, d);
 
       const btn = document.getElementById('edit-save-btn');
       btn.disabled = true;
       try {
-        await updateTrainingSession('abs', editingId, { workoutType });
-        const s = allSessions.find(x => x.id === editingId);
-        if (s) { s.workoutType = workoutType; }
+        await updateTrainingSession('abs', editingId, { workoutType, recordedAt });
+        original.workoutType = workoutType;
+        original.recordedAt = recordedAt;
+        allSessions.sort((a, b) => a.recordedAt - b.recordedAt);
         closeEditModal();
-        renderStats();
-        renderTable();
+        applyRange();
       } catch (err) {
         document.getElementById('edit-error').textContent = t('err_update_failed', currentLang) + err.message;
       } finally {

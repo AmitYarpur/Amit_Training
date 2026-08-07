@@ -263,6 +263,10 @@
     <div class="modal">
       <h2 data-i18n="edit">Edit</h2>
       <div class="field-group">
+        <label data-i18n="table_date">Date</label>
+        <input type="date" id="edit-date">
+      </div>
+      <div class="field-group">
         <label data-i18n="field_systolic">Systolic (top number)</label>
         <input type="number" id="edit-systolic" inputmode="numeric">
       </div>
@@ -314,6 +318,12 @@
     function formatTime(d) {
       const locale = window.__lang === 'he' ? 'he-IL' : undefined;
       return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    }
+    function toDateInputValue(d) {
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
     }
 
     function renderTable() {
@@ -368,6 +378,7 @@
       const s = allSessions.find(x => x.id === id);
       if (!s) return;
       editingId = id;
+      document.getElementById('edit-date').value = toDateInputValue(s.recordedAt);
       document.getElementById('edit-systolic').value = s.systolic;
       document.getElementById('edit-diastolic').value = s.diastolic;
       document.getElementById('edit-heart_rate').value = s.heart_rate;
@@ -382,24 +393,36 @@
 
     async function saveEdit() {
       const lang = window.__lang;
+      const dateStr = document.getElementById('edit-date').value;
       const systolic = Number(document.getElementById('edit-systolic').value);
       const diastolic = Number(document.getElementById('edit-diastolic').value);
       const heart_rate = Number(document.getElementById('edit-heart_rate').value);
 
+      if (!dateStr) {
+        document.getElementById('edit-error').textContent = window.I18N.t('err_date_missing', lang);
+        return;
+      }
       if (![systolic, diastolic, heart_rate].every(v => Number.isFinite(v) && v > 0)) {
         document.getElementById('edit-error').textContent = window.I18N.t('err_bp_missing', lang);
         return;
       }
 
+      const original = allSessions.find(x => x.id === editingId);
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const recordedAt = new Date(original.recordedAt);
+      recordedAt.setFullYear(y, m - 1, d);
+
       const btn = document.getElementById('edit-save-btn');
       btn.disabled = true;
       try {
-        await updateBloodPressureReading(editingId, { systolic, diastolic, heart_rate });
-        const s = allSessions.find(x => x.id === editingId);
-        if (s) { s.systolic = systolic; s.diastolic = diastolic; s.heart_rate = heart_rate; }
+        await updateBloodPressureReading(editingId, { systolic, diastolic, heart_rate, recordedAt });
+        original.systolic = systolic;
+        original.diastolic = diastolic;
+        original.heart_rate = heart_rate;
+        original.recordedAt = recordedAt;
+        allSessions.sort((a, b) => a.recordedAt - b.recordedAt);
         closeEditModal();
-        renderChart();
-        renderTable();
+        applyRange();
       } catch (err) {
         document.getElementById('edit-error').textContent = window.I18N.t('err_update_failed', lang) + err.message;
       } finally {

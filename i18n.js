@@ -186,6 +186,7 @@ const translations = {
     confirm_delete_entry: "Delete this entry? This cannot be undone.",
     err_update_failed: "Could not update entry, please try again.\n",
     err_delete_failed: "Could not delete entry, please try again.\n",
+    err_date_missing: "Please choose a date.",
     retry: "Retry",
 
     // settings.html - diagnostics
@@ -380,6 +381,7 @@ const translations = {
     confirm_delete_entry: "למחוק את הרשומה הזו? לא ניתן לבטל פעולה זו.",
     err_update_failed: "לא ניתן היה לעדכן את הרשומה, נסה שוב.\n",
     err_delete_failed: "לא ניתן היה למחוק את הרשומה, נסה שוב.\n",
+    err_date_missing: "נא לבחור תאריך.",
     retry: "נסה שוב",
 
     // settings.html - diagnostics

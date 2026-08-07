@@ -287,13 +287,16 @@ export async function getBloodPressureSessions(username = getCurrentUser()) {
   });
 }
 
+// values: { systolic, diastolic, heart_rate, recordedAt?: Date }
 export async function updateBloodPressureReading(id, values, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await withTimeout(updateDoc(doc(db, "users", username, "bloodPressureReadings", id), {
+  const payload = {
     systolic: values.systolic,
     diastolic: values.diastolic,
     heart_rate: values.heart_rate
-  }), "bp:update");
+  };
+  if (values.recordedAt) payload.recordedAt = values.recordedAt;
+  await withTimeout(updateDoc(doc(db, "users", username, "bloodPressureReadings", id), payload), "bp:update");
 }
 
 export async function deleteBloodPressureReading(id, username = getCurrentUser()) {
@@ -332,9 +335,12 @@ export async function getWeightSessions(username = getCurrentUser()) {
   });
 }
 
-export async function updateWeight(id, value, username = getCurrentUser()) {
+// values: { value, recordedAt?: Date }
+export async function updateWeight(id, values, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await withTimeout(updateDoc(doc(db, "users", username, "weightReadings", id), { value }), "weight:update");
+  const payload = { value: values.value };
+  if (values.recordedAt) payload.recordedAt = values.recordedAt;
+  await withTimeout(updateDoc(doc(db, "users", username, "weightReadings", id), payload), "weight:update");
 }
 
 export async function deleteWeight(id, username = getCurrentUser()) {
