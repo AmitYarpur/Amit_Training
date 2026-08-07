@@ -138,6 +138,7 @@
 
     <div class="card" style="margin-top:20px;">
       <div id="state-msg" class="state-msg" data-i18n="loading_sessions">Loading sessions…</div>
+      <button class="btn-primary" id="retry-btn" style="display:none; margin-top:14px;" data-i18n="retry">Retry</button>
 
       <div id="content" style="display:none;">
         <div class="range-filter" id="range-filter">
@@ -407,6 +408,7 @@
     }
 
     async function init() {
+      document.getElementById('retry-btn').style.display = 'none';
       currentLang = await applyUserLanguage();
       window.__lang = currentLang;
       window.I18N.translatePage(currentLang);
@@ -419,6 +421,7 @@
         allSessions = await getTrainingSessions('abs');
       } catch (err) {
         document.getElementById('state-msg').textContent = t('could_not_load_sessions', currentLang) + err.message;
+        document.getElementById('retry-btn').style.display = 'block';
         return;
       }
 
@@ -433,6 +436,7 @@
       applyRange();
     }
 
+    document.getElementById('retry-btn').addEventListener('click', init);
     init();
   </script>
 

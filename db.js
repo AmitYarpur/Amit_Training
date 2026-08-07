@@ -41,6 +41,72 @@ const SESSION_KEY = "helth_user";
 const THEME_KEY = "helth_theme";
 const LANG_KEY = "helth_lang";
 
+// --- Diagnostics: rotating client-side log ------------------------------
+// There's no backend to send logs to, so this keeps the last N timestamped
+// events in localStorage instead - enough to see what a hung/slow report
+// load was actually doing (which request, stuck or timed out) after the
+// fact, viewable from Settings, without needing to reproduce it live.
+const LOG_KEY = "helth_diag_log";
+const LOG_MAX_ENTRIES = 150;
+
+function logEvent(type, detail) {
+  let entries;
+  try {
+    entries = JSON.parse(localStorage.getItem(LOG_KEY)) || [];
+  } catch (e) {
+    entries = [];
+  }
+  entries.push({ t: new Date().toISOString(), type, detail: detail || "" });
+  if (entries.length > LOG_MAX_ENTRIES) {
+    entries = entries.slice(entries.length - LOG_MAX_ENTRIES);
+  }
+  try {
+    localStorage.setItem(LOG_KEY, JSON.stringify(entries));
+  } catch (e) {
+    // storage full/unavailable - logging must never break the app
+  }
+}
+
+export function getDiagnosticLog() {
+  try {
+    return JSON.parse(localStorage.getItem(LOG_KEY)) || [];
+  } catch (e) {
+    return [];
+  }
+}
+
+export function clearDiagnosticLog() {
+  localStorage.removeItem(LOG_KEY);
+}
+
+logEvent("page:load", location.pathname);
+document.addEventListener("visibilitychange", () => {
+  logEvent("page:visibility", document.visibilityState);
+});
+
+// A hung request (e.g. a socket iOS silently killed while the PWA was
+// suspended in the background) never rejects on its own - it just leaves
+// the caller awaiting forever. Every Firestore call below is wrapped with
+// this so a stuck request fails after REQUEST_TIMEOUT_MS instead of
+// leaving a report page stuck on "Loading..." with no way to recover
+// short of force-closing the app.
+const REQUEST_TIMEOUT_MS = 10000;
+
+function withTimeout(promise, label) {
+  logEvent("request:start", label);
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      logEvent("request:timeout", label);
+      reject(new Error("Request timed out. Check your connection and try again."));
+    }, REQUEST_TIMEOUT_MS);
+  });
+  return Promise.race([promise, timeout]).then(
+    result => { clearTimeout(timer); logEvent("request:success", label); return result; },
+    err => { clearTimeout(timer); logEvent("request:error", label + ": " + err.message); throw err; }
+  );
+}
+
 // --- Auth (lightweight, no backend) -----------------------------------
 // There's no server here to keep a password check secret, so this is a
 // basic "is this the right password" gate against a hashed value in
@@ -64,13 +130,13 @@ export async function signup(username, password) {
   }
 
   const ref = credentialRef(username);
-  const existing = await getDoc(ref);
+  const existing = await withTimeout(getDoc(ref), "signup:getDoc");
   if (existing.exists()) {
     throw new Error("That username is already taken.");
   }
 
   const passwordHash = await hashPassword(password);
-  await setDoc(ref, { passwordHash, createdAt: serverTimestamp() });
+  await withTimeout(setDoc(ref, { passwordHash, createdAt: serverTimestamp() }), "signup:setDoc");
   setCurrentUser(username);
   return username;
 }
@@ -78,7 +144,7 @@ export async function signup(username, password) {
 export async function login(username, password) {
   username = username.trim();
   const ref = credentialRef(username);
-  const snap = await getDoc(ref);
+  const snap = await withTimeout(getDoc(ref), "login:getDoc");
   if (!snap.exists()) {
     throw new Error("No account found with that username.");
   }
@@ -116,13 +182,13 @@ function userDocRef(username) {
 // theme: "light" | "dark"
 export async function saveThemePreference(theme, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await setDoc(userDocRef(username), { theme }, { merge: true });
+  await withTimeout(setDoc(userDocRef(username), { theme }, { merge: true }), "theme:save");
   localStorage.setItem(THEME_KEY, theme);
 }
 
 export async function getThemePreference(username = getCurrentUser()) {
   if (!username) return null;
-  const snap = await getDoc(userDocRef(username));
+  const snap = await withTimeout(getDoc(userDocRef(username)), "theme:get");
   return snap.exists() ? (snap.data().theme || null) : null;
 }
 
@@ -153,13 +219,13 @@ export async function applyUserTheme() {
 // language: "en" | "he"
 export async function saveLanguagePreference(language, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await setDoc(userDocRef(username), { language }, { merge: true });
+  await withTimeout(setDoc(userDocRef(username), { language }, { merge: true }), "language:save");
   localStorage.setItem(LANG_KEY, language);
 }
 
 export async function getLanguagePreference(username = getCurrentUser()) {
   if (!username) return null;
-  const snap = await getDoc(userDocRef(username));
+  const snap = await withTimeout(getDoc(userDocRef(username)), "language:get");
   return snap.exists() ? (snap.data().language || null) : null;
 }
 
@@ -193,13 +259,13 @@ function bloodPressureCollection(username) {
 // Saved as a single record under the user, so one submission = one row.
 export async function saveReadings(values, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await addDoc(bloodPressureCollection(username), {
+  await withTimeout(addDoc(bloodPressureCollection(username), {
     systolic: values.systolic,
     diastolic: values.diastolic,
     heart_rate: values.heart_rate,
     recordedAt: serverTimestamp(),
     recordedAtLocal: new Date().toString()
-  });
+  }), "bp:save");
 }
 
 // Returns one row per reading: { id, recordedAt: Date, systolic, diastolic, heart_rate }
@@ -207,7 +273,7 @@ export async function saveReadings(values, username = getCurrentUser()) {
 export async function getBloodPressureSessions(username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
   const q = query(bloodPressureCollection(username), orderBy("recordedAt", "asc"));
-  const snap = await getDocs(q);
+  const snap = await withTimeout(getDocs(q), "bp:get");
 
   return snap.docs.map(docSnap => {
     const data = docSnap.data();
@@ -223,16 +289,16 @@ export async function getBloodPressureSessions(username = getCurrentUser()) {
 
 export async function updateBloodPressureReading(id, values, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await updateDoc(doc(db, "users", username, "bloodPressureReadings", id), {
+  await withTimeout(updateDoc(doc(db, "users", username, "bloodPressureReadings", id), {
     systolic: values.systolic,
     diastolic: values.diastolic,
     heart_rate: values.heart_rate
-  });
+  }), "bp:update");
 }
 
 export async function deleteBloodPressureReading(id, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await deleteDoc(doc(db, "users", username, "bloodPressureReadings", id));
+  await withTimeout(deleteDoc(doc(db, "users", username, "bloodPressureReadings", id)), "bp:delete");
 }
 
 // --- Weight readings, scoped under the current user (kg) ---------------
@@ -243,18 +309,18 @@ function weightCollection(username) {
 
 export async function saveWeight(value, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await addDoc(weightCollection(username), {
+  await withTimeout(addDoc(weightCollection(username), {
     value,
     recordedAt: serverTimestamp(),
     recordedAtLocal: new Date().toString()
-  });
+  }), "weight:save");
 }
 
 // Returns one row per reading: { id, recordedAt: Date, value } sorted oldest first.
 export async function getWeightSessions(username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
   const q = query(weightCollection(username), orderBy("recordedAt", "asc"));
-  const snap = await getDocs(q);
+  const snap = await withTimeout(getDocs(q), "weight:get");
 
   return snap.docs.map(docSnap => {
     const data = docSnap.data();
@@ -268,12 +334,12 @@ export async function getWeightSessions(username = getCurrentUser()) {
 
 export async function updateWeight(id, value, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await updateDoc(doc(db, "users", username, "weightReadings", id), { value });
+  await withTimeout(updateDoc(doc(db, "users", username, "weightReadings", id), { value }), "weight:update");
 }
 
 export async function deleteWeight(id, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await deleteDoc(doc(db, "users", username, "weightReadings", id));
+  await withTimeout(deleteDoc(doc(db, "users", username, "weightReadings", id)), "weight:delete");
 }
 
 // --- Training sessions (running, walking, pulldown, ...), scoped under ----
@@ -287,11 +353,11 @@ function trainingCollection(kind, username) {
 // values: a flat object of whatever fields this exercise type tracks
 export async function saveTrainingSession(kind, values, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await addDoc(trainingCollection(kind, username), {
+  await withTimeout(addDoc(trainingCollection(kind, username), {
     ...values,
     recordedAt: serverTimestamp(),
     recordedAtLocal: new Date().toString()
-  });
+  }), kind + ":save");
 }
 
 // Returns one row per session: { id, recordedAt: Date, ...whatever fields
@@ -299,7 +365,7 @@ export async function saveTrainingSession(kind, values, username = getCurrentUse
 export async function getTrainingSessions(kind, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
   const q = query(trainingCollection(kind, username), orderBy("recordedAt", "asc"));
-  const snap = await getDocs(q);
+  const snap = await withTimeout(getDocs(q), kind + ":get");
 
   return snap.docs.map(docSnap => {
     const { recordedAt, recordedAtLocal, ...fields } = docSnap.data();
@@ -314,10 +380,10 @@ export async function getTrainingSessions(kind, username = getCurrentUser()) {
 // values: a flat object of whatever fields this exercise type tracks
 export async function updateTrainingSession(kind, id, values, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await updateDoc(doc(db, "users", username, kind + "Sessions", id), { ...values });
+  await withTimeout(updateDoc(doc(db, "users", username, kind + "Sessions", id), { ...values }), kind + ":update");
 }
 
 export async function deleteTrainingSession(kind, id, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
-  await deleteDoc(doc(db, "users", username, kind + "Sessions", id));
+  await withTimeout(deleteDoc(doc(db, "users", username, kind + "Sessions", id)), kind + ":delete");
 }

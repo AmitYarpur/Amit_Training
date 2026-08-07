@@ -5,7 +5,7 @@
 // only makes the UI itself load fast and stay viewable if the network
 // briefly drops.
 
-const CACHE_NAME = 'helth-static-v4';
+const CACHE_NAME = 'helth-static-v5';
 
 const PRECACHE_URLS = [
   './',
@@ -58,11 +58,27 @@ self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
+// A hung fetch (e.g. a socket iOS silently killed while the PWA was
+// suspended in the background) never rejects on its own - plain fetch()
+// would then just hang forever instead of falling back to the cache.
+// This races it against a timeout so a stuck request fails fast.
+const FETCH_TIMEOUT_MS = 6000;
+
+function fetchWithTimeout(request) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('sw fetch timeout')), FETCH_TIMEOUT_MS);
+    fetch(request).then(
+      response => { clearTimeout(timer); resolve(response); },
+      err => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
+
 // Network-first for our own static files only: always fetch the latest
 // version when online (so a deploy shows up the very next load, and
 // files can never go stale relative to each other - e.g. new HTML
-// paired with old CSS), falling back to the cache only if the network
-// request fails (offline / flaky connection).
+// paired with old CSS), falling back to the cache if the network
+// request fails or hangs (offline / flaky connection / suspended PWA).
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) {
@@ -70,7 +86,7 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith(
-    fetch(event.request)
+    fetchWithTimeout(event.request)
       .then(response => {
         if (response && response.ok) {
           const copy = response.clone();

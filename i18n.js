@@ -175,7 +175,16 @@ const translations = {
     workout_count_suffix: "times",
     confirm_delete_entry: "Delete this entry? This cannot be undone.",
     err_update_failed: "Could not update entry, please try again.\n",
-    err_delete_failed: "Could not delete entry, please try again.\n"
+    err_delete_failed: "Could not delete entry, please try again.\n",
+    retry: "Retry",
+
+    // settings.html - diagnostics
+    section_diagnostics: "Diagnostics",
+    diagnostics_subtext: "A rotating log of recent app activity, kept on this device only - useful if a report is slow to load or won't open.",
+    copy_log: "Copy Log",
+    clear_log: "Clear Log",
+    log_copied: "Copied!",
+    no_log_entries: "No log entries yet."
   },
 
   he: {
@@ -350,7 +359,16 @@ const translations = {
     workout_count_suffix: "פעמים",
     confirm_delete_entry: "למחוק את הרשומה הזו? לא ניתן לבטל פעולה זו.",
     err_update_failed: "לא ניתן היה לעדכן את הרשומה, נסה שוב.\n",
-    err_delete_failed: "לא ניתן היה למחוק את הרשומה, נסה שוב.\n"
+    err_delete_failed: "לא ניתן היה למחוק את הרשומה, נסה שוב.\n",
+    retry: "נסה שוב",
+
+    // settings.html - diagnostics
+    section_diagnostics: "אבחון",
+    diagnostics_subtext: "יומן מתגלגל של פעילות אחרונה באפליקציה, נשמר במכשיר זה בלבד - שימושי כאשר דוח נטען לאט או לא נפתח.",
+    copy_log: "העתק יומן",
+    clear_log: "נקה יומן",
+    log_copied: "הועתק!",
+    no_log_entries: "אין עדיין רשומות יומן."
   }
 };
 

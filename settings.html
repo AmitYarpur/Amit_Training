@@ -58,6 +58,40 @@
     color: var(--text-muted);
     margin: 0 0 10px;
   }
+
+  .diag-subtext {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0 0 12px;
+    line-height: 1.5;
+  }
+
+  .diag-log {
+    max-height: 220px;
+    overflow-y: auto;
+    background: var(--field-bg);
+    border: 1px solid var(--border-hairline);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+    direction: ltr;
+    text-align: start;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+
+  .diag-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .diag-row > button {
+    flex: 1;
+  }
 </style>
 </head>
 <body>
@@ -85,6 +119,15 @@
       </div>
       <div class="error" id="lang-status" style="min-height:18px; color: var(--text-secondary);"></div>
 
+      <p class="settings-section-label" data-i18n="section_diagnostics" style="margin-top:18px;">Diagnostics</p>
+      <p class="diag-subtext" data-i18n="diagnostics_subtext">A rotating log of recent app activity, kept on this device only - useful if a report is slow to load or won't open.</p>
+      <div class="diag-log" id="log-viewer"></div>
+      <div class="diag-row">
+        <button class="btn-secondary" id="copy-log-btn" data-i18n="copy_log">Copy Log</button>
+        <button class="btn-secondary" id="clear-log-btn" data-i18n="clear_log">Clear Log</button>
+      </div>
+      <div class="error" id="log-status" style="min-height:18px; color: var(--text-secondary);"></div>
+
     </div>
   </div>
 
@@ -93,10 +136,13 @@
   </script>
 
   <script type="module">
-    import { saveThemePreference, applyUserTheme, saveLanguagePreference, applyUserLanguage } from './db.js';
+    import { saveThemePreference, applyUserTheme, saveLanguagePreference, applyUserLanguage, getDiagnosticLog, clearDiagnosticLog } from './db.js';
     window.__saveThemePreference = saveThemePreference;
     window.__applyUserTheme = applyUserTheme;
     window.__saveLanguagePreference = saveLanguagePreference;
+    window.__getDiagnosticLog = getDiagnosticLog;
+    window.__clearDiagnosticLog = clearDiagnosticLog;
+    if (window.__renderLog) window.__renderLog();
 
     // Reconciles against Firestore (correcting any stale/leftover cached
     // value, e.g. from a previous account on this device) then reflects
@@ -191,6 +237,46 @@
 
     window.__markActiveThemePill = markActiveThemePill;
     window.__markActiveLangPill = markActiveLangPill;
+
+    function renderLog() {
+      if (!window.__getDiagnosticLog) return;
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const t = window.__t;
+      const entries = window.__getDiagnosticLog();
+      const viewer = document.getElementById('log-viewer');
+      if (entries.length === 0) {
+        viewer.textContent = t ? window.I18N.t('no_log_entries', lang) : 'No log entries yet.';
+        return;
+      }
+      viewer.textContent = entries
+        .map(e => `${e.t}  ${e.type}${e.detail ? '  ' + e.detail : ''}`)
+        .join('\n');
+      viewer.scrollTop = viewer.scrollHeight;
+    }
+    window.__renderLog = renderLog;
+
+    async function copyLog() {
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const t = window.__t;
+      const entries = window.__getDiagnosticLog ? window.__getDiagnosticLog() : [];
+      const text = entries.map(e => `${e.t}  ${e.type}${e.detail ? '  ' + e.detail : ''}`).join('\n');
+      const statusEl = document.getElementById('log-status');
+      try {
+        await navigator.clipboard.writeText(text);
+        statusEl.textContent = t ? window.I18N.t('log_copied', lang) : 'Copied!';
+        setTimeout(() => { statusEl.textContent = ''; }, 1500);
+      } catch (err) {
+        statusEl.textContent = err.message;
+      }
+    }
+
+    function clearLog() {
+      if (window.__clearDiagnosticLog) window.__clearDiagnosticLog();
+      renderLog();
+    }
+
+    document.getElementById('copy-log-btn').addEventListener('click', copyLog);
+    document.getElementById('clear-log-btn').addEventListener('click', clearLog);
   </script>
 
   <a class="back-fab" href="index.html#menu" data-i18n-aria="back_home" aria-label="Back">

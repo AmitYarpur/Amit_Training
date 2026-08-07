@@ -195,6 +195,7 @@
 
     <div class="card" style="margin-top:20px;">
       <div id="state-msg" class="state-msg" data-i18n="loading_readings">Loading readings…</div>
+      <button class="btn-primary" id="retry-btn" style="display:none; margin-top:14px;" data-i18n="retry">Retry</button>
 
       <div id="content" style="display:none;">
         <div class="range-filter" id="range-filter">
@@ -607,6 +608,7 @@
     });
 
     async function init() {
+      document.getElementById('retry-btn').style.display = 'none';
       window.__lang = await applyUserLanguage();
       window.I18N.translatePage(window.__lang);
 
@@ -617,6 +619,7 @@
         allSessions = await getWeightSessions();
       } catch (err) {
         document.getElementById('state-msg').textContent = window.I18N.t('could_not_load_readings', window.__lang) + err.message;
+        document.getElementById('retry-btn').style.display = 'block';
         return;
       }
 
@@ -631,6 +634,7 @@
       applyRange();
     }
 
+    document.getElementById('retry-btn').addEventListener('click', init);
     init();
   </script>
 
