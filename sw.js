@@ -5,7 +5,7 @@
 // only makes the UI itself load fast and stay viewable if the network
 // briefly drops.
 
-const CACHE_NAME = 'helth-static-v9';
+const CACHE_NAME = 'helth-static-v10';
 
 const PRECACHE_URLS = [
   './',
@@ -71,7 +71,12 @@ const FETCH_TIMEOUT_MS = 6000;
 function fetchWithTimeout(request) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('sw fetch timeout')), FETCH_TIMEOUT_MS);
-    fetch(request).then(
+    // cache: 'no-store' bypasses the browser's own HTTP cache, not just
+    // this file's cache API store - without it, "network-first" can still
+    // silently hand back a stale response the browser itself considered
+    // fresh. iOS PWAs cache noticeably more aggressively than desktop
+    // browsers, which is what made this visible.
+    fetch(request, { cache: 'no-store' }).then(
       response => { clearTimeout(timer); resolve(response); },
       err => { clearTimeout(timer); reject(err); }
     );
