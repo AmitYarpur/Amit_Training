@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2a78d6">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Helth">
+<title>Pilates</title>
+<script>
+  if (localStorage.getItem('helth_theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  window.__getCurrentLang = function () { return window.__lang; };
+  if (window.__lang === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
+  if (!localStorage.getItem('helth_user')) {
+    window.location.replace('index.html');
+  }
+</script>
+<script src="i18n.js"></script>
+<script>
+  window.__t = window.I18N.t;
+</script>
+<link rel="stylesheet" href="styles.css">
+
+<style>
+  .card.hidden { display: none; }
+
+  #submit-btn {
+    margin-top: 22px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="page">
+
+    <!-- Screen 1: choose Yes or No -->
+    <div class="card" id="entry-screen">
+      <p class="eyebrow" data-i18n="tile_pilates">Pilates</p>
+      <h1 class="headline" id="datetime-headline" style="font-size:18px;">Today is the ...</h1>
+
+      <div class="tile-list" id="choice-tiles" style="margin-top:18px;">
+        <button class="tile-btn" data-choice="yes" onclick="selectChoice(this)">
+          <span class="icon-badge badge-teal">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+          </span>
+          <span class="tile-label" data-i18n="choice_yes">Yes</span>
+        </button>
+
+        <button class="tile-btn" data-choice="no" onclick="selectChoice(this)">
+          <span class="icon-badge badge-gray">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </span>
+          <span class="tile-label" data-i18n="choice_no">No</span>
+        </button>
+      </div>
+
+      <div class="error" id="entry-error" style="text-align:center; margin-top:10px;"></div>
+
+      <button class="btn-primary" id="submit-btn" onclick="openSummary()" data-i18n="submit">Submit</button>
+    </div>
+
+    <!-- Screen 2: approved value shown after saving -->
+    <div class="card hidden" id="saved-screen" style="text-align:center;">
+      <div class="checkmark-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h2 class="headline" style="text-align:center;" data-i18n="saved_title">Saved</h2>
+      <div class="summary-row"><span data-i18n="field_pilates">Pilates</span><span class="value" id="saved-choice"></span></div>
+
+      <button class="btn-primary" onclick="startNewSession()" style="margin-top:22px;" data-i18n="log_another_session">Log another session</button>
+    </div>
+
+  </div>
+
+  <!-- Are you sure -->
+  <div class="overlay" id="confirm-overlay">
+    <div class="modal">
+      <h2 data-i18n="are_you_sure">Are you sure?</h2>
+      <div class="summary-row"><span data-i18n="field_pilates">Pilates</span><span class="value" id="confirm-choice"></span></div>
+      <div class="row" style="margin-top:20px;">
+        <button class="btn-secondary" onclick="closeModals()" data-i18n="edit">Edit</button>
+        <button class="btn-primary" id="confirm-save-btn" onclick="submitSession()" data-i18n="yes_save">Yes, Save</button>
+      </div>
+    </div>
+  </div>
+
+  <a class="back-fab" href="training.html" data-i18n-aria="back_training" aria-label="Back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </a>
+
+  <script>
+    window.I18N.translatePage(window.__lang);
+  </script>
+
+  <script type="module">
+    import { saveTrainingSession, applyUserTheme, applyUserLanguage } from './db.js';
+    window.__saveTrainingSession = (values) => saveTrainingSession('pilates', values);
+    applyUserTheme();
+
+    applyUserLanguage().then(lang => {
+      window.__lang = lang;
+      window.I18N.translatePage(lang);
+      if (window.__updateHeadline) window.__updateHeadline();
+    });
+  </script>
+
+  <script>
+    function updateHeadline() {
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const locale = lang === 'he' ? 'he-IL' : undefined;
+      const now = new Date();
+      const dateStr = now.toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const timeStr = now.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const headline = window.__t ? window.__t('today_headline', lang, { date: dateStr, time: timeStr }) : `Today is the ${dateStr} and ${timeStr}`;
+      document.getElementById('datetime-headline').textContent = headline;
+    }
+    window.__updateHeadline = updateHeadline;
+    updateHeadline();
+    setInterval(updateHeadline, 1000);
+
+    let selectedChoice = null; // true | false | null
+
+    function selectChoice(btn) {
+      document.querySelectorAll('#choice-tiles .tile-btn').forEach(b => b.classList.remove('filled'));
+      btn.classList.add('filled');
+      selectedChoice = btn.dataset.choice === 'yes';
+      document.getElementById('entry-error').textContent = '';
+    }
+
+    function choiceLabel() {
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      return window.__t ? window.__t(selectedChoice ? 'choice_yes' : 'choice_no', lang) : (selectedChoice ? 'Yes' : 'No');
+    }
+
+    function openSummary() {
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      if (selectedChoice === null) {
+        document.getElementById('entry-error').textContent = window.__t ? window.__t('err_pilates_missing', lang) : 'Please choose Yes or No before submitting.';
+        return;
+      }
+      document.getElementById('entry-error').textContent = '';
+      document.getElementById('confirm-choice').textContent = choiceLabel();
+      document.getElementById('confirm-overlay').classList.add('active');
+    }
+
+    async function submitSession() {
+      const btn = document.getElementById('confirm-save-btn');
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      btn.disabled = true;
+      try {
+        await window.__saveTrainingSession({ done: selectedChoice });
+        closeModals();
+        showSavedScreen();
+      } catch (err) {
+        btn.disabled = false;
+        const prefix = window.__t ? window.__t('err_session_save_failed', lang) : 'Could not save session, please try again.\n';
+        alert(prefix + err.message);
+      }
+    }
+
+    function showSavedScreen() {
+      document.getElementById('saved-choice').textContent = choiceLabel();
+      document.getElementById('entry-screen').classList.add('hidden');
+      document.getElementById('saved-screen').classList.remove('hidden');
+    }
+
+    function startNewSession() {
+      selectedChoice = null;
+      document.querySelectorAll('#choice-tiles .tile-btn').forEach(b => b.classList.remove('filled'));
+      document.getElementById('saved-screen').classList.add('hidden');
+      document.getElementById('entry-screen').classList.remove('hidden');
+    }
+
+    function closeModals() {
+      document.getElementById('confirm-overlay').classList.remove('active');
+    }
+
+    window.selectChoice = selectChoice;
+    window.openSummary = openSummary;
+    window.submitSession = submitSession;
+    window.startNewSession = startNewSession;
+    window.closeModals = closeModals;
+  </script>
+
+</body>
+</html>

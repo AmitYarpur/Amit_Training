@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#2a78d6">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Helth">
+<title>Pilates Report</title>
+<script>
+  if (localStorage.getItem('helth_theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  window.__getCurrentLang = function () { return window.__lang; };
+  if (window.__lang === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
+  if (!localStorage.getItem('helth_user')) {
+    window.location.replace('index.html');
+  }
+</script>
+<script src="i18n.js"></script>
+<script>
+  window.__t = window.I18N.t;
+</script>
+<link rel="stylesheet" href="styles.css">
+
+<style>
+  /* These are intentionally NOT named --text-primary etc: the chart plot
+     itself stays on a fixed light "paper" surface regardless of app theme
+     (its colors were validated against that light surface), while the
+     surrounding chrome (card, table, legend) follows the shared theme. */
+  .viz-root {
+    --chart-surface:  #e3e3e0;
+    --chart-ink:     #0b0b0b;
+    --chart-muted:    #6d6c66;
+    --gridline:       #cbcac5;
+    --axis:           #a8a79d;
+    --series-yes:     #1baf7a;
+    --series-no:      #8b95a3;
+  }
+
+  body.viz-root {
+    padding: 20px;
+    display: block;
+  }
+
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .wrap h1.headline {
+    font-size: 22px;
+    margin: 4px 0 4px;
+  }
+
+  .card {
+    margin-bottom: 20px;
+  }
+
+  .state-msg {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 30px 10px;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .legend-key {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* Chart */
+  #chart-container {
+    position: relative;
+    width: 100%;
+  }
+
+  svg#chart {
+    width: 100%;
+    height: auto;
+    display: block;
+    touch-action: pan-y pinch-zoom;
+    direction: ltr;
+  }
+
+  .gridline {
+    stroke: var(--gridline);
+    stroke-width: 1;
+  }
+
+  .axis-text {
+    fill: var(--chart-muted);
+    font-size: 15px;
+  }
+
+  .marker {
+    stroke: var(--chart-surface);
+    stroke-width: 2.5;
+  }
+
+  .crosshair-line {
+    stroke: var(--axis);
+    stroke-width: 1;
+    pointer-events: none;
+    display: none;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--chart-ink);
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    display: none;
+    white-space: nowrap;
+    transform: translate(-50%, -110%);
+    z-index: 5;
+  }
+
+  .tooltip .tt-date {
+    color: #ccc;
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+
+  .tooltip .tt-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .tooltip .tt-key {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .tooltip .tt-value {
+    font-weight: 700;
+    margin-left: auto;
+    padding-left: 12px;
+  }
+
+  /* Table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  th, td {
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--gridline);
+    font-variant-numeric: tabular-nums;
+  }
+
+  th {
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+  }
+
+  td.num {
+    color: var(--text-primary);
+  }
+
+</style>
+</head>
+<body class="viz-root">
+
+  <div class="wrap">
+    <p class="eyebrow" data-i18n="eyebrow_reports">Reports</p>
+    <h1 class="headline" data-i18n="headline_pilates_report">Pilates Report</h1>
+    <p class="subtext" style="margin:-4px 0 0;" id="report-user-line"></p>
+
+    <div class="card" style="margin-top:20px;">
+      <div id="state-msg" class="state-msg" data-i18n="loading_sessions">Loading sessions…</div>
+      <button class="btn-primary" id="retry-btn" style="display:none; margin-top:14px;" data-i18n="retry">Retry</button>
+
+      <div id="content" style="display:none;">
+        <div class="range-filter" id="range-filter">
+          <button class="range-pill" data-range="7" data-i18n="range_week">Last Week</button>
+          <button class="range-pill" data-range="30" data-i18n="range_month">Last Month</button>
+          <button class="range-pill" data-range="90" data-i18n="range_3months">Last 3 Months</button>
+          <button class="range-pill" data-range="365" data-i18n="range_year">Last Year</button>
+          <button class="range-pill" data-range="all" data-i18n="range_all">All Time</button>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item"><span class="legend-key" style="background:var(--series-yes)"></span><span data-i18n="choice_yes">Yes</span></div>
+          <div class="legend-item"><span class="legend-key" style="background:var(--series-no)"></span><span data-i18n="choice_no">No</span></div>
+        </div>
+
+        <div id="range-empty-msg" class="state-msg" style="display:none;"></div>
+
+        <div id="chart-container">
+          <svg id="chart" preserveAspectRatio="none"></svg>
+          <div class="tooltip" id="tooltip"></div>
+        </div>
+
+        <button class="btn-primary" id="export-btn" onclick="exportCsv()" style="margin-top:16px;" data-i18n="export_csv">Export to CSV</button>
+      </div>
+    </div>
+
+    <div class="card" id="table-card" style="display:none;">
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th data-i18n="table_date">Date</th><th data-i18n="table_time">Time</th><th data-i18n="table_pilates">Pilates</th><th data-i18n="table_actions">Actions</th></tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="edit-overlay">
+    <div class="modal">
+      <h2 data-i18n="edit">Edit</h2>
+      <div class="field-group">
+        <label data-i18n="field_pilates">Pilates</label>
+        <select id="edit-done">
+          <option value="yes" data-i18n="choice_yes">Yes</option>
+          <option value="no" data-i18n="choice_no">No</option>
+        </select>
+      </div>
+      <div class="error" id="edit-error"></div>
+      <div class="row">
+        <button class="btn-secondary" onclick="closeEditModal()" data-i18n="cancel">Cancel</button>
+        <button class="btn-primary" id="edit-save-btn" onclick="saveEdit()" data-i18n="save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.I18N.translatePage(window.__lang);
+  </script>
+
+  <script type="module">
+    import { getTrainingSessions, updateTrainingSession, deleteTrainingSession, applyUserTheme, applyUserLanguage } from './db.js';
+    applyUserTheme();
+
+    const EDIT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    const DELETE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+    let editingId = null;
+
+    let allSessions = [];
+    let sessions = [];
+    let currentRangeDays = 'all';
+
+    function formatDate(d) {
+      const locale = window.__lang === 'he' ? 'he-IL' : undefined;
+      return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+    }
+    function formatTime(d) {
+      const locale = window.__lang === 'he' ? 'he-IL' : undefined;
+      return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    }
+    function choiceText(done) {
+      return window.I18N.t(done ? 'choice_yes' : 'choice_no', window.__lang);
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('table-body');
+      tbody.innerHTML = '';
+      // newest first for reading convenience
+      [...sessions].reverse().forEach(s => {
+        const tr = document.createElement('tr');
+        const cells = [formatDate(s.recordedAt), formatTime(s.recordedAt), choiceText(s.done)];
+        cells.forEach((val, i) => {
+          const td = document.createElement('td');
+          if (i >= 2) td.classList.add('num');
+          td.textContent = String(val);
+          tr.appendChild(td);
+        });
+
+        const actionsTd = document.createElement('td');
+        const actions = document.createElement('div');
+        actions.className = 'row-actions';
+
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'icon-btn';
+        editBtn.setAttribute('aria-label', window.I18N.t('edit', window.__lang));
+        editBtn.innerHTML = EDIT_ICON;
+        editBtn.addEventListener('click', () => openEditModal(s.id));
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'icon-btn icon-btn-danger';
+        deleteBtn.setAttribute('aria-label', window.I18N.t('delete', window.__lang));
+        deleteBtn.innerHTML = DELETE_ICON;
+        deleteBtn.addEventListener('click', () => deleteRow(s.id));
+
+        actions.appendChild(editBtn);
+        actions.appendChild(deleteBtn);
+        actionsTd.appendChild(actions);
+        tr.appendChild(actionsTd);
+
+        tbody.appendChild(tr);
+      });
+      document.getElementById('table-card').style.display = 'block';
+    }
+
+    // Fixed 2-level axis (No / Yes) - not a magnitude, so points are never
+    // connected by a line: doing so would imply a continuous value moving
+    // between the two states, which isn't what a daily yes/no answer means.
+    function renderChart() {
+      const svg = document.getElementById('chart');
+      const container = document.getElementById('chart-container');
+
+      const W = Math.max(320, Math.round(container.getBoundingClientRect().width));
+      const H = Math.round(Math.min(360, Math.max(260, W * 0.55)));
+      const padL = 46, padR = 44, padT = 24, padB = 60;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      const n = sessions.length;
+      const x = i => n === 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
+      const y = v => padT + plotH - v * plotH;
+
+      const svgns = 'http://www.w3.org/2000/svg';
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.innerHTML = '';
+
+      const bg = document.createElementNS(svgns, 'rect');
+      bg.setAttribute('x', 0);
+      bg.setAttribute('y', 0);
+      bg.setAttribute('width', W);
+      bg.setAttribute('height', H);
+      bg.setAttribute('rx', 16);
+      bg.setAttribute('fill', 'var(--chart-surface)');
+      svg.appendChild(bg);
+
+      // 2 fixed gridlines: No (bottom) and Yes (top)
+      [0, 1].forEach(v => {
+        const gy = y(v);
+        const line = document.createElementNS(svgns, 'line');
+        line.setAttribute('x1', padL);
+        line.setAttribute('x2', W - padR);
+        line.setAttribute('y1', gy);
+        line.setAttribute('y2', gy);
+        line.setAttribute('class', 'gridline');
+        svg.appendChild(line);
+
+        const label = document.createElementNS(svgns, 'text');
+        label.setAttribute('x', padL - 6);
+        label.setAttribute('y', gy + 4);
+        label.setAttribute('text-anchor', 'end');
+        label.setAttribute('class', 'axis-text');
+        label.textContent = window.I18N.t(v === 1 ? 'choice_yes' : 'choice_no', window.__lang);
+        svg.appendChild(label);
+      });
+
+      // x-axis labels, sparse to avoid crowding, rotated so they never collide
+      const maxLabels = Math.max(3, Math.floor(plotW / 60));
+      const labelEvery = Math.max(1, Math.ceil(n / maxLabels));
+      sessions.forEach((s, i) => {
+        if (i % labelEvery !== 0 && i !== n - 1) return;
+        const label = document.createElementNS(svgns, 'text');
+        label.setAttribute('text-anchor', 'end');
+        label.setAttribute('class', 'axis-text');
+        label.setAttribute('transform', `translate(${x(i)} ${H - padB + 18}) rotate(-40)`);
+        label.textContent = formatDate(s.recordedAt);
+        svg.appendChild(label);
+      });
+
+      // markers only - no connecting line (see comment above function)
+      sessions.forEach((s, i) => {
+        const c = document.createElementNS(svgns, 'circle');
+        c.setAttribute('cx', x(i));
+        c.setAttribute('cy', y(s.done ? 1 : 0));
+        c.setAttribute('r', 6);
+        c.setAttribute('fill', s.done ? 'var(--series-yes)' : 'var(--series-no)');
+        c.setAttribute('class', 'marker');
+        svg.appendChild(c);
+      });
+
+      const crosshair = document.createElementNS(svgns, 'line');
+      crosshair.setAttribute('y1', padT);
+      crosshair.setAttribute('y2', H - padB);
+      crosshair.setAttribute('class', 'crosshair-line');
+      svg.appendChild(crosshair);
+
+      const hit = document.createElementNS(svgns, 'rect');
+      hit.setAttribute('x', padL);
+      hit.setAttribute('y', padT);
+      hit.setAttribute('width', plotW);
+      hit.setAttribute('height', plotH);
+      hit.setAttribute('fill', 'transparent');
+      svg.appendChild(hit);
+
+      const tooltip = document.getElementById('tooltip');
+
+      function showAt(i) {
+        const s = sessions[i];
+        crosshair.setAttribute('x1', x(i));
+        crosshair.setAttribute('x2', x(i));
+        crosshair.style.display = 'block';
+
+        tooltip.innerHTML = '';
+        const dateEl = document.createElement('div');
+        dateEl.className = 'tt-date';
+        dateEl.textContent = formatDate(s.recordedAt) + ' · ' + formatTime(s.recordedAt);
+        tooltip.appendChild(dateEl);
+
+        const row = document.createElement('div');
+        row.className = 'tt-row';
+        const key = document.createElement('span');
+        key.className = 'tt-key';
+        key.style.background = s.done ? 'var(--series-yes)' : 'var(--series-no)';
+        const val = document.createElement('span');
+        val.className = 'tt-value';
+        val.textContent = choiceText(s.done);
+        row.appendChild(key);
+        row.appendChild(val);
+        tooltip.appendChild(row);
+
+        const rect = svg.getBoundingClientRect();
+        const px = (x(i) / W) * rect.width;
+        tooltip.style.left = px + 'px';
+        tooltip.style.top = '0px';
+        tooltip.style.display = 'block';
+      }
+
+      function hide() {
+        crosshair.style.display = 'none';
+        tooltip.style.display = 'none';
+      }
+
+      function handlePointer(e) {
+        const rect = svg.getBoundingClientRect();
+        const relX = ((e.clientX - rect.left) / rect.width) * W;
+        let nearest = 0, best = Infinity;
+        sessions.forEach((s, i) => {
+          const d = Math.abs(x(i) - relX);
+          if (d < best) { best = d; nearest = i; }
+        });
+        showAt(nearest);
+      }
+
+      hit.addEventListener('pointerdown', handlePointer);
+      hit.addEventListener('pointermove', handlePointer);
+      hit.addEventListener('pointerleave', hide);
+    }
+
+    function toCsv() {
+      const header = [window.I18N.t('table_date', window.__lang), window.I18N.t('table_time', window.__lang), window.I18N.t('table_pilates', window.__lang)];
+      const rows = sessions.map(s => [formatDate(s.recordedAt), formatTime(s.recordedAt), choiceText(s.done)]);
+      return [header, ...rows].map(r => r.join(',')).join('\n');
+    }
+
+    window.exportCsv = function () {
+      const csv = toCsv();
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pilates-sessions.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    function applyRange() {
+      const emptyMsg = document.getElementById('range-empty-msg');
+
+      if (currentRangeDays === 'all') {
+        sessions = allSessions;
+      } else {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - currentRangeDays);
+        sessions = allSessions.filter(s => s.recordedAt >= cutoff);
+      }
+
+      const chartContainer = document.getElementById('chart-container');
+      const exportBtn = document.getElementById('export-btn');
+
+      if (sessions.length === 0) {
+        emptyMsg.textContent = window.I18N.t('no_sessions_in_range', window.__lang);
+        emptyMsg.style.display = 'block';
+        chartContainer.style.display = 'none';
+        exportBtn.style.display = 'none';
+        document.getElementById('table-card').style.display = 'none';
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+      chartContainer.style.display = 'block';
+      exportBtn.style.display = 'block';
+      renderChart();
+      renderTable();
+    }
+
+    function setupRangeFilter() {
+      const buttons = Array.from(document.querySelectorAll('.range-pill'));
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const range = btn.dataset.range;
+          currentRangeDays = range === 'all' ? 'all' : Number(range);
+          buttons.forEach(b => b.classList.toggle('active', b === btn));
+          applyRange();
+        });
+      });
+      const defaultBtn = buttons.find(b => b.dataset.range === 'all');
+      defaultBtn.classList.add('active');
+    }
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (sessions.length > 0) renderChart();
+      }, 150);
+    });
+
+    function openEditModal(id) {
+      const s = allSessions.find(x => x.id === id);
+      if (!s) return;
+      editingId = id;
+      document.getElementById('edit-done').value = s.done ? 'yes' : 'no';
+      document.getElementById('edit-error').textContent = '';
+      document.getElementById('edit-overlay').classList.add('active');
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-overlay').classList.remove('active');
+      editingId = null;
+    }
+
+    async function saveEdit() {
+      const lang = window.__lang;
+      const done = document.getElementById('edit-done').value === 'yes';
+
+      const btn = document.getElementById('edit-save-btn');
+      btn.disabled = true;
+      try {
+        await updateTrainingSession('pilates', editingId, { done });
+        const s = allSessions.find(x => x.id === editingId);
+        if (s) { s.done = done; }
+        closeEditModal();
+        renderChart();
+        renderTable();
+      } catch (err) {
+        document.getElementById('edit-error').textContent = window.I18N.t('err_update_failed', lang) + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function deleteRow(id) {
+      const lang = window.__lang;
+      if (!confirm(window.I18N.t('confirm_delete_entry', lang))) return;
+      try {
+        await deleteTrainingSession('pilates', id);
+        allSessions = allSessions.filter(x => x.id !== id);
+        applyRange();
+      } catch (err) {
+        alert(window.I18N.t('err_delete_failed', lang) + err.message);
+      }
+    }
+
+    window.closeEditModal = closeEditModal;
+    window.saveEdit = saveEdit;
+
+    async function init() {
+      document.getElementById('retry-btn').style.display = 'none';
+      window.__lang = await applyUserLanguage();
+      window.I18N.translatePage(window.__lang);
+
+      document.getElementById('report-user-line').textContent = window.I18N.t('for_user_prefix', window.__lang) + localStorage.getItem('helth_user');
+      document.getElementById('state-msg').textContent = window.I18N.t('loading_sessions', window.__lang);
+
+      try {
+        allSessions = await getTrainingSessions('pilates');
+      } catch (err) {
+        document.getElementById('state-msg').textContent = window.I18N.t('could_not_load_sessions', window.__lang) + err.message;
+        document.getElementById('retry-btn').style.display = 'block';
+        return;
+      }
+
+      if (allSessions.length === 0) {
+        document.getElementById('state-msg').textContent = window.I18N.t('no_pilates_logged', window.__lang);
+        return;
+      }
+
+      document.getElementById('state-msg').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      setupRangeFilter();
+      applyRange();
+    }
+
+    document.getElementById('retry-btn').addEventListener('click', init);
+    init();
+  </script>
+
+  <a class="back-fab" href="training-reports.html" data-i18n-aria="back_training_reports" aria-label="Back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </a>
+</body>
+</html>

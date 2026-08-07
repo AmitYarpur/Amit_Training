@@ -95,6 +95,13 @@ const translations = {
     field_seconds: "Duration (seconds)",
     err_plank_missing: "Please enter your plank duration before submitting.",
 
+    // pilates.html
+    tile_pilates: "Pilates",
+    field_pilates: "Pilates",
+    choice_yes: "Yes",
+    choice_no: "No",
+    err_pilates_missing: "Please choose Yes or No before submitting.",
+
     // training.html
     headline_training: "Training",
     tile_running: "Running",
@@ -134,6 +141,7 @@ const translations = {
     headline_bench_press_report: "Bench Press / Butterfly Report",
     headline_abs_report: "Abs Report",
     headline_plank_report: "Plank Report",
+    headline_pilates_report: "Pilates Report",
     for_user_prefix: "for ",
     loading_readings: "Loading readings…",
     loading_sessions: "Loading sessions…",
@@ -145,6 +153,7 @@ const translations = {
     no_bench_press_logged: "No bench press / butterfly sessions logged yet.",
     no_abs_logged: "No abs workouts logged yet.",
     no_plank_logged: "No plank sessions logged yet.",
+    no_pilates_logged: "No Pilates sessions logged yet.",
     could_not_load_readings: "Could not load readings: ",
     could_not_load_sessions: "Could not load sessions: ",
     range_week: "Last Week",
@@ -166,6 +175,7 @@ const translations = {
     table_sessions: "Sessions",
     table_workout_type: "Workout Type",
     table_seconds: "Duration (sec)",
+    table_pilates: "Pilates",
     table_actions: "Actions",
     unit_km: "km",
     unit_min: "min",
@@ -279,6 +289,13 @@ const translations = {
     field_seconds: "משך (שניות)",
     err_plank_missing: "נא להזין את משך הפלאנק לפני השליחה.",
 
+    // pilates.html
+    tile_pilates: "פילאטיס",
+    field_pilates: "פילאטיס",
+    choice_yes: "כן",
+    choice_no: "לא",
+    err_pilates_missing: "נא לבחור כן או לא לפני השליחה.",
+
     // training.html
     headline_training: "אימונים",
     tile_running: "ריצה",
@@ -318,6 +335,7 @@ const translations = {
     headline_bench_press_report: "דוח לחיצת חזה / פרפר",
     headline_abs_report: "דוח בטן",
     headline_plank_report: "דוח פלאנק",
+    headline_pilates_report: "דוח פילאטיס",
     for_user_prefix: "עבור ",
     loading_readings: "טוען מדידות…",
     loading_sessions: "טוען אימונים…",
@@ -329,6 +347,7 @@ const translations = {
     no_bench_press_logged: "עדיין לא נרשמו אימוני לחיצת חזה / פרפר.",
     no_abs_logged: "עדיין לא נרשמו אימוני בטן.",
     no_plank_logged: "עדיין לא נרשמו אימוני פלאנק.",
+    no_pilates_logged: "עדיין לא נרשמו אימוני פילאטיס.",
     could_not_load_readings: "לא ניתן היה לטעון את המדידות: ",
     could_not_load_sessions: "לא ניתן היה לטעון את האימונים: ",
     range_week: "השבוע האחרון",
@@ -350,6 +369,7 @@ const translations = {
     table_sessions: "סטים",
     table_workout_type: "סוג אימון",
     table_seconds: "משך (שניות)",
+    table_pilates: "פילאטיס",
     table_actions: "פעולות",
     unit_km: "ק״מ",
     unit_min: "דק'",
