@@ -96,7 +96,26 @@
         <span><span data-i18n="signed_in_as">Signed in as </span><strong id="user-badge-name"></strong></span>
         <a onclick="doLogout()" data-i18n="log_out">Log out</a>
       </div>
-      <h2 class="headline" data-i18n="home_page">Home Page</h2>
+      <h1 class="headline" id="home-greeting" style="font-size:26px;">Hi</h1>
+
+      <div id="stats-section" style="display:none;">
+        <div class="summary-row" id="row-current-weight" style="display:none;">
+          <span data-i18n="stat_current_weight">Current Weight</span>
+          <span class="value" id="stat-current-weight"></span>
+        </div>
+        <div class="summary-row" id="row-bmi" style="display:none;">
+          <span data-i18n="stat_bmi">BMI</span>
+          <span class="bmi-pill" id="bmi-pill"></span>
+        </div>
+        <div class="summary-row" id="row-target-weight" style="display:none;">
+          <span data-i18n="stat_target_weight">Target Weight</span>
+          <span class="value" id="stat-target-weight"></span>
+        </div>
+        <div class="summary-row" id="row-to-go" style="display:none;">
+          <span data-i18n="stat_to_go">To Go</span>
+          <span class="value" id="stat-to-go"></span>
+        </div>
+      </div>
 
       <p class="section-label" data-i18n="section_quick_log">Quick Log</p>
       <div class="grid-2">
@@ -155,11 +174,13 @@
   </script>
 
   <script type="module">
-    import { login, signup, applyUserTheme, applyUserLanguage } from './db.js';
+    import { login, signup, applyUserTheme, applyUserLanguage, getWeightSessions, getUserProfile } from './db.js';
     window.__login = login;
     window.__signup = signup;
     window.__applyUserTheme = applyUserTheme;
     window.__applyUserLanguage = applyUserLanguage;
+    window.__getWeightSessions = getWeightSessions;
+    window.__getUserProfile = getUserProfile;
 
     // Reconciles theme + language against Firestore for the case where the
     // page loads already-logged-in (module executes after the classic
@@ -189,6 +210,80 @@
       const onMenu = id === 'menu-screen';
       document.querySelector('.page').classList.toggle('has-tabbar', onMenu);
       document.getElementById('app-tabbar').style.display = onMenu ? 'flex' : 'none';
+      if (onMenu) loadHomeStats();
+    }
+
+    // BMI thresholds follow the standard WHO bands, collapsed to 3 colors:
+    // red covers both under- and over-weight extremes since both carry
+    // health risk, green is the healthy band, yellow is the in-between
+    // "watch it" band.
+    function bmiCategory(bmi) {
+      if (bmi < 18.5) return { key: 'underweight', cls: 'bmi-red' };
+      if (bmi < 25) return { key: 'normal', cls: 'bmi-green' };
+      if (bmi < 30) return { key: 'overweight', cls: 'bmi-yellow' };
+      return { key: 'obese', cls: 'bmi-red' };
+    }
+
+    function renderHomeStats(currentWeight, height, destWeight) {
+      const section = document.getElementById('stats-section');
+      if (currentWeight == null) {
+        section.style.display = 'none';
+        return;
+      }
+
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const t = window.__t;
+      const kgUnit = t ? window.I18N.t('unit_kg', lang) : 'kg';
+
+      document.getElementById('stat-current-weight').textContent = currentWeight + ' ' + kgUnit;
+      document.getElementById('row-current-weight').style.display = 'flex';
+
+      const bmiRow = document.getElementById('row-bmi');
+      if (height) {
+        const bmi = currentWeight / Math.pow(height / 100, 2);
+        const cat = bmiCategory(bmi);
+        const pill = document.getElementById('bmi-pill');
+        pill.textContent = bmi.toFixed(1) + ' · ' + (t ? window.I18N.t('bmi_' + cat.key, lang) : cat.key);
+        pill.className = 'bmi-pill ' + cat.cls;
+        bmiRow.style.display = 'flex';
+      } else {
+        bmiRow.style.display = 'none';
+      }
+
+      const targetRow = document.getElementById('row-target-weight');
+      const toGoRow = document.getElementById('row-to-go');
+      if (destWeight) {
+        document.getElementById('stat-target-weight').textContent = destWeight + ' ' + kgUnit;
+        targetRow.style.display = 'flex';
+
+        const diff = currentWeight - destWeight;
+        const toGoEl = document.getElementById('stat-to-go');
+        toGoEl.textContent = diff > 0.05
+          ? diff.toFixed(1) + ' ' + kgUnit
+          : (t ? window.I18N.t('goal_reached', lang) : 'Goal reached!');
+        toGoRow.style.display = 'flex';
+      } else {
+        targetRow.style.display = 'none';
+        toGoRow.style.display = 'none';
+      }
+
+      section.style.display = 'block';
+    }
+
+    async function loadHomeStats() {
+      if (!window.__getWeightSessions || !window.__getUserProfile) return;
+      try {
+        const [weightSessions, profile] = await Promise.all([
+          window.__getWeightSessions(),
+          window.__getUserProfile()
+        ]);
+        const currentWeight = weightSessions.length ? weightSessions[weightSessions.length - 1].value : null;
+        const height = profile && profile.height ? profile.height : null;
+        const destWeight = profile && profile.destinationWeight ? profile.destinationWeight : null;
+        renderHomeStats(currentWeight, height, destWeight);
+      } catch (e) {
+        document.getElementById('stats-section').style.display = 'none';
+      }
     }
 
     function comingSoon(featureKey) {
@@ -267,6 +362,7 @@
       const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
       if (window.__t) {
         document.getElementById('welcome-headline').textContent = window.__t('welcome_headline', lang, { username });
+        document.getElementById('home-greeting').textContent = window.__t('home_greeting', lang, { username });
       }
     }
     window.__refreshDynamicText = refreshDynamicText;

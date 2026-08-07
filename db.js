@@ -249,6 +249,19 @@ export async function applyUserLanguage() {
   return language;
 }
 
+// height: number (cm), destinationWeight: number (kg) - only the keys
+// present in `values` are written, so saving one doesn't clobber the other.
+export async function saveUserProfile(values, username = getCurrentUser()) {
+  if (!username) throw new Error("Not logged in.");
+  await withTimeout(setDoc(userDocRef(username), { ...values }, { merge: true }), "profile:save");
+}
+
+export async function getUserProfile(username = getCurrentUser()) {
+  if (!username) return null;
+  const snap = await withTimeout(getDoc(userDocRef(username)), "profile:get");
+  return snap.exists() ? snap.data() : null;
+}
+
 // --- Blood pressure readings, scoped under the current user -----------
 
 function bloodPressureCollection(username) {

@@ -119,14 +119,42 @@
       </div>
       <div class="error" id="lang-status" style="min-height:18px; color: var(--text-secondary);"></div>
 
-      <p class="settings-section-label" data-i18n="section_diagnostics" style="margin-top:18px;">Diagnostics</p>
-      <p class="diag-subtext" data-i18n="diagnostics_subtext">A rotating log of recent app activity, kept on this device only - useful if a report is slow to load or won't open.</p>
-      <div class="diag-log" id="log-viewer"></div>
-      <div class="diag-row">
-        <button class="btn-secondary" id="copy-log-btn" data-i18n="copy_log">Copy Log</button>
-        <button class="btn-secondary" id="clear-log-btn" data-i18n="clear_log">Clear Log</button>
+      <p class="settings-section-label" data-i18n="section_body_profile" style="margin-top:18px;">Body Profile</p>
+      <div class="tile-list" style="margin-bottom:14px;">
+        <label class="field-row">
+          <span class="icon-badge badge-lava">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M8 6l4-4 4 4"/><path d="M8 18l4 4 4-4"/></svg>
+          </span>
+          <span class="field-label" data-i18n="field_height_cm">Height (cm)</span>
+          <input class="field-input" type="number" id="input-height" inputmode="numeric" step="1" placeholder="--">
+        </label>
+
+        <label class="field-row">
+          <span class="icon-badge badge-cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.2"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
+          </span>
+          <span class="field-label" data-i18n="field_destination_weight_kg">Destination Weight (kg)</span>
+          <input class="field-input" type="number" id="input-destination-weight" inputmode="decimal" step="0.1" placeholder="--">
+        </label>
       </div>
-      <div class="error" id="log-status" style="min-height:18px; color: var(--text-secondary);"></div>
+      <button class="btn-primary" id="save-profile-btn" data-i18n="save_profile_btn">Save</button>
+      <div class="error" id="profile-status" style="min-height:18px; color: var(--text-secondary);"></div>
+
+      <div id="diagnostics-wrap" style="display:none;">
+        <button type="button" id="diagnostics-toggle" class="settings-section-label" style="display:flex; align-items:center; justify-content:space-between; width:100%; background:none; border:none; padding:0; margin:18px 0 10px; cursor:pointer;">
+          <span data-i18n="section_diagnostics">Diagnostics</span>
+          <svg id="diagnostics-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.15s ease; flex: 0 0 auto;"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <div id="diagnostics-body" style="display:none;">
+          <p class="diag-subtext" data-i18n="diagnostics_subtext">A rotating log of recent app activity, kept on this device only - useful if a report is slow to load or won't open.</p>
+          <div class="diag-log" id="log-viewer"></div>
+          <div class="diag-row">
+            <button class="btn-secondary" id="copy-log-btn" data-i18n="copy_log">Copy Log</button>
+            <button class="btn-secondary" id="clear-log-btn" data-i18n="clear_log">Clear Log</button>
+          </div>
+          <div class="error" id="log-status" style="min-height:18px; color: var(--text-secondary);"></div>
+        </div>
+      </div>
 
     </div>
   </div>
@@ -136,13 +164,22 @@
   </script>
 
   <script type="module">
-    import { saveThemePreference, applyUserTheme, saveLanguagePreference, applyUserLanguage, getDiagnosticLog, clearDiagnosticLog } from './db.js';
+    import { saveThemePreference, applyUserTheme, saveLanguagePreference, applyUserLanguage, saveUserProfile, getUserProfile, getDiagnosticLog, clearDiagnosticLog } from './db.js';
     window.__saveThemePreference = saveThemePreference;
     window.__applyUserTheme = applyUserTheme;
     window.__saveLanguagePreference = saveLanguagePreference;
+    window.__saveUserProfile = saveUserProfile;
     window.__getDiagnosticLog = getDiagnosticLog;
     window.__clearDiagnosticLog = clearDiagnosticLog;
     if (window.__renderLog) window.__renderLog();
+
+    getUserProfile().then(profile => {
+      if (!profile) return;
+      if (profile.height != null) document.getElementById('input-height').value = profile.height;
+      if (profile.destinationWeight != null) document.getElementById('input-destination-weight').value = profile.destinationWeight;
+    }).catch(() => {
+      // keep the fields blank rather than fail loudly here
+    });
 
     // Reconciles against Firestore (correcting any stale/leftover cached
     // value, e.g. from a previous account on this device) then reflects
@@ -220,6 +257,40 @@
       }
     }
 
+    async function saveProfile() {
+      const heightRaw = document.getElementById('input-height').value.trim();
+      const destWeightRaw = document.getElementById('input-destination-weight').value.trim();
+      const statusEl = document.getElementById('profile-status');
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const t = window.__t;
+
+      const values = {};
+      for (const [raw, key] of [[heightRaw, 'height'], [destWeightRaw, 'destinationWeight']]) {
+        if (raw === '') continue;
+        const num = Number(raw);
+        if (!Number.isFinite(num) || num <= 0) {
+          statusEl.textContent = t ? window.I18N.t('err_profile_invalid', lang) : 'Please enter a positive number.';
+          return;
+        }
+        values[key] = num;
+      }
+
+      const btn = document.getElementById('save-profile-btn');
+      btn.disabled = true;
+      statusEl.textContent = t ? window.I18N.t('saving_ellipsis', lang) : 'Saving…';
+      try {
+        await window.__saveUserProfile(values);
+        statusEl.textContent = t ? window.I18N.t('saved_title', lang) : 'Saved';
+        setTimeout(() => { statusEl.textContent = ''; }, 1500);
+      } catch (err) {
+        statusEl.textContent = (t ? window.I18N.t('could_not_save_prefix', lang) : 'Could not save: ') + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
+
     document.querySelectorAll('#theme-toggle .range-pill').forEach(btn => {
       btn.addEventListener('click', () => chooseTheme(btn.dataset.themeChoice));
     });
@@ -277,6 +348,24 @@
 
     document.getElementById('copy-log-btn').addEventListener('click', copyLog);
     document.getElementById('clear-log-btn').addEventListener('click', clearLog);
+
+    // Diagnostics is a debug tool, not something every family member on
+    // this shared app needs cluttering their settings - only Amit sees it
+    // at all, and even then it starts collapsed until asked for.
+    const diagUsername = (localStorage.getItem('helth_user') || '').toLowerCase();
+    if (diagUsername === 'amit') {
+      document.getElementById('diagnostics-wrap').style.display = 'block';
+
+      const diagToggle = document.getElementById('diagnostics-toggle');
+      const diagBody = document.getElementById('diagnostics-body');
+      const diagChevron = document.getElementById('diagnostics-chevron');
+      diagToggle.addEventListener('click', () => {
+        const opening = diagBody.style.display === 'none';
+        diagBody.style.display = opening ? 'block' : 'none';
+        diagChevron.style.transform = opening ? 'rotate(90deg)' : '';
+        if (opening) renderLog();
+      });
+    }
   </script>
 
   <div class="tabbar">

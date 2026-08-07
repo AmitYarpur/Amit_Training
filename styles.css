@@ -229,7 +229,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--accent-cyan);
 }
 
 .tile-btn .icon-badge svg {
@@ -287,7 +287,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--accent-cyan);
 }
 
 .field-row .icon-badge svg {
@@ -404,20 +404,20 @@ button {
   cursor: pointer;
 }
 
-/* Icon badge color variants — Electric Lava: two accents + one neutral */
-.badge-lava  { background: var(--accent-gradient); }
-.badge-cyan  { background: linear-gradient(135deg, var(--accent-cyan), var(--accent-cyan-2)); }
-.badge-slate { background: linear-gradient(135deg, #64748b, #94a3b8); }
-
-/* Bright cyan needs a dark icon in dark mode for legible contrast; higher
-   specificity than the base .tile-btn/.field-row .icon-badge white default. */
-.tile-btn .icon-badge.badge-cyan,
-.field-row .icon-badge.badge-cyan {
-  color: var(--text-on-accent);
+/* Icon badges — Electric Lava: all badges are lava orange, all glyphs cyan.
+   Kept as three selectors (rather than renaming classes again in every
+   page) so a future split back into variants is a one-line change. */
+.badge-lava,
+.badge-cyan,
+.badge-slate {
+  background: var(--accent-gradient);
 }
 
-:root[data-theme="dark"] .badge-lava { box-shadow: var(--shadow-accent-glow); }
-:root[data-theme="dark"] .badge-cyan { box-shadow: 0 0 0 1px rgba(0, 245, 255, 0.28), 0 0 20px rgba(0, 245, 255, 0.3); }
+:root[data-theme="dark"] .badge-lava,
+:root[data-theme="dark"] .badge-cyan,
+:root[data-theme="dark"] .badge-slate {
+  box-shadow: var(--shadow-accent-glow);
+}
 
 /* Back button: fixed bottom-right on every page, same spot regardless of
    content length or language, so "go back" is always in the same place. */
@@ -737,8 +737,173 @@ button {
   background: var(--surface-wash-strong);
 }
 
+.action-card .icon-badge {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-cyan);
+}
+
+.action-card .icon-badge svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Masked raster training icons: the source PNGs are solid glyphs on a
+   light/white backdrop, so default luminance masking turns the backdrop
+   transparent and fills the glyph with currentColor - keeping them
+   tintable like every other (inline-SVG) icon in the app. */
+.mask-icon {
+  width: 23px;
+  height: 23px;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.mask-icon.icon-running     { -webkit-mask-image: url('icons/training-running.png');     mask-image: url('icons/training-running.png'); }
+.mask-icon.icon-walking     { -webkit-mask-image: url('icons/training-walking.png');     mask-image: url('icons/training-walking.png'); }
+.mask-icon.icon-pulldown    { -webkit-mask-image: url('icons/training-pulldown.png');    mask-image: url('icons/training-pulldown.png'); }
+.mask-icon.icon-bench-press { -webkit-mask-image: url('icons/training-bench-press.png'); mask-image: url('icons/training-bench-press.png'); }
+.mask-icon.icon-abs         { -webkit-mask-image: url('icons/training-abs.png');         mask-image: url('icons/training-abs.png'); }
+.mask-icon.icon-plank       { -webkit-mask-image: url('icons/training-plank.png');       mask-image: url('icons/training-plank.png'); }
+.mask-icon.icon-pilates     { -webkit-mask-image: url('icons/training-pilates.png');     mask-image: url('icons/training-pilates.png'); }
+
+/* Square icon-grid tiles (Training list): 2-up, icon centered above label */
+.square-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 14px 10px;
+  background: var(--surface-wash);
+  text-align: center;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.square-tile:active {
+  transform: scale(0.96);
+  background: var(--surface-wash-strong);
+}
+
+.square-tile .icon-badge {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-cyan);
+}
+
+.square-tile .mask-icon {
+  width: 28px;
+  height: 28px;
+}
+
+.square-tile .tile-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+/* Featured tile (Training Overview): full-width, accent-filled, sits above
+   the neutral 2-up grid of individual exercise reports to stand apart from
+   them rather than blend in as an eighth equal square. */
+.overview-tile {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 16px 16px;
+  margin-bottom: 12px;
+  background: var(--accent-gradient);
+  box-shadow: var(--shadow-accent-glow);
+  text-align: left;
+  transition: transform 0.15s ease;
+}
+
+.overview-tile:active {
+  transform: scale(0.98);
+}
+
+.overview-tile .icon-badge {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.overview-tile .icon-badge svg {
+  width: 22px;
+  height: 22px;
+}
+
+.overview-tile .tile-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.overview-tile .tile-label {
+  display: block;
+  font-size: 15.5px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.overview-tile .tile-sub {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 2px;
+}
+
+.overview-tile .chevron {
+  flex: 0 0 auto;
+  color: rgba(255, 255, 255, 0.85);
+}
+
 .action-card .tile-label {
   font-size: 14.5px;
   font-weight: 600;
   color: var(--text-primary);
 }
+
+/* BMI pill: deliberate exception to the 2-accent palette - red/yellow/
+   green is the universally understood convention for a health-risk
+   indicator, clearer here than staying on-brand. */
+.bmi-pill {
+  display: inline-block;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.bmi-pill.bmi-green  { background: #16A34A; }
+.bmi-pill.bmi-yellow { background: #D97706; }
+.bmi-pill.bmi-red    { background: #DC2626; }

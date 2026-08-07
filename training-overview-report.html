@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FF5722">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Helth">
+<title>Training Overview</title>
+<script>
+  if (localStorage.getItem('helth_theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  window.__getCurrentLang = function () { return window.__lang; };
+  if (window.__lang === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
+  if (!localStorage.getItem('helth_user')) {
+    window.location.replace('index.html');
+  }
+</script>
+<script src="i18n.js"></script>
+<script>
+  window.__t = window.I18N.t;
+</script>
+<link rel="stylesheet" href="styles.css">
+
+<style>
+  /* Same fixed "paper" surface concept as the other reports' charts: the
+     plot itself stays on a fixed light surface regardless of app theme,
+     while the surrounding chrome (card, legend) follows the shared theme. */
+  .viz-root {
+    --chart-surface: #e3e3e0;
+    --chart-ink:     #0b0b0b;
+    --chart-muted:   #6d6c66;
+    --gridline:      #cbcac5;
+    --axis:          #a8a79d;
+  }
+
+  body.viz-root {
+    padding: 20px;
+    display: block;
+  }
+
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .wrap h1.headline {
+    font-size: 22px;
+    margin: 4px 0 4px;
+  }
+
+  .card {
+    margin-bottom: 20px;
+  }
+
+  .state-msg {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 30px 10px;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 14px;
+    row-gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .legend-key {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  /* Chart */
+  #chart-container {
+    position: relative;
+    width: 100%;
+  }
+
+  svg#chart {
+    width: 100%;
+    height: auto;
+    display: block;
+    touch-action: pan-y pinch-zoom;
+    direction: ltr;
+  }
+
+  .gridline {
+    stroke: var(--gridline);
+    stroke-width: 1;
+  }
+
+  .axis-text {
+    fill: var(--chart-muted);
+    font-size: 13px;
+  }
+
+  .crosshair-line {
+    stroke: var(--axis);
+    stroke-width: 1;
+    pointer-events: none;
+    display: none;
+  }
+
+  .tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: var(--chart-ink);
+    color: #fff;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 14px;
+    line-height: 1.6;
+    display: none;
+    white-space: nowrap;
+    transform: translate(-50%, -110%);
+    z-index: 5;
+  }
+
+  .tooltip .tt-date {
+    color: #ccc;
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+
+  .tooltip .tt-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .tooltip .tt-key {
+    width: 12px;
+    height: 3px;
+    display: inline-block;
+    border-radius: 2px;
+  }
+</style>
+</head>
+<body class="viz-root">
+
+  <div class="wrap">
+    <p class="eyebrow" data-i18n="eyebrow_reports">Reports</p>
+    <h1 class="headline" data-i18n="headline_training_overview">Training Overview</h1>
+    <p class="subtext" style="margin:-4px 0 0;" id="report-user-line"></p>
+
+    <div class="card" style="margin-top:20px;">
+      <div id="state-msg" class="state-msg" data-i18n="loading_sessions">Loading sessions…</div>
+      <button class="btn-primary" id="retry-btn" style="display:none; margin-top:14px;" data-i18n="retry">Retry</button>
+
+      <div id="content" style="display:none;">
+        <div class="range-filter" id="range-filter">
+          <button class="range-pill" data-range="7" data-i18n="range_week">Last Week</button>
+          <button class="range-pill" data-range="30" data-i18n="range_month">Last Month</button>
+          <button class="range-pill" data-range="90" data-i18n="range_3months">Last 3 Months</button>
+          <button class="range-pill" data-range="365" data-i18n="range_year">Last Year</button>
+          <button class="range-pill" data-range="all" data-i18n="range_all">All Time</button>
+        </div>
+
+        <div class="legend" id="legend"></div>
+
+        <div id="range-empty-msg" class="state-msg" style="display:none;"></div>
+
+        <div id="chart-container">
+          <svg id="chart" preserveAspectRatio="none"></svg>
+          <div class="tooltip" id="tooltip"></div>
+        </div>
+
+        <button class="btn-primary" id="export-btn" onclick="exportCsv()" style="margin-top:16px;" data-i18n="export_csv">Export to CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    window.I18N.translatePage(window.__lang);
+  </script>
+
+  <script type="module">
+    import { getTrainingSessions, applyUserTheme, applyUserLanguage } from './db.js';
+    applyUserTheme();
+
+    // Fixed order so the same exercise always stacks in the same slot from
+    // bar to bar, and a fixed categorical palette (7 distinguishable hues,
+    // kept in the Electric Lava family) since this view needs to tell 7
+    // categories apart at a glance - the app's normal 2-accent system can't.
+    const KINDS = ['running', 'walking', 'pulldown', 'benchPress', 'abs', 'plank', 'pilates'];
+    const COLORS = {
+      running: '#FF5722',
+      walking: '#00BCD4',
+      pulldown: '#7C5CFF',
+      benchPress: '#FFC107',
+      abs: '#2DD4BF',
+      plank: '#64748B',
+      pilates: '#FF4D8D'
+    };
+    const LABEL_KEYS = {
+      running: 'tile_running',
+      walking: 'tile_walking',
+      pulldown: 'tile_pulldown',
+      benchPress: 'tile_bench_press',
+      abs: 'tile_abs',
+      plank: 'tile_plank',
+      pilates: 'tile_pilates'
+    };
+
+    let allDays = []; // [{ date: Date (local midnight), kinds: Set<string> }], oldest first
+    let days = [];
+    let currentRangeDays = 'all';
+
+    function formatDate(d) {
+      const locale = window.__lang === 'he' ? 'he-IL' : undefined;
+      return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+    }
+
+    function dayKey(d) {
+      return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+    }
+
+    async function loadAllDays() {
+      const results = await Promise.all(
+        KINDS.map(kind => getTrainingSessions(kind).then(sessions => ({ kind, sessions })))
+      );
+      const byDay = new Map();
+      results.forEach(({ kind, sessions }) => {
+        sessions.forEach(s => {
+          const key = dayKey(s.recordedAt);
+          if (!byDay.has(key)) {
+            byDay.set(key, {
+              date: new Date(s.recordedAt.getFullYear(), s.recordedAt.getMonth(), s.recordedAt.getDate()),
+              kinds: new Set()
+            });
+          }
+          byDay.get(key).kinds.add(kind);
+        });
+      });
+      return Array.from(byDay.values()).sort((a, b) => a.date - b.date);
+    }
+
+    function renderLegend() {
+      const legend = document.getElementById('legend');
+      legend.innerHTML = '';
+      KINDS.forEach(kind => {
+        const item = document.createElement('div');
+        item.className = 'legend-item';
+        const key = document.createElement('span');
+        key.className = 'legend-key';
+        key.style.background = COLORS[kind];
+        const label = document.createElement('span');
+        label.textContent = window.I18N.t(LABEL_KEYS[kind], window.__lang);
+        item.appendChild(key);
+        item.appendChild(label);
+        legend.appendChild(item);
+      });
+    }
+
+    function renderChart() {
+      const svg = document.getElementById('chart');
+      const container = document.getElementById('chart-container');
+
+      const W = Math.max(320, Math.round(container.getBoundingClientRect().width));
+      const H = Math.round(Math.min(420, Math.max(320, W * 0.75)));
+      const padL = 34, padR = 16, padT = 20, padB = 60;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      // Fixed 0-7 scale: the count of distinct exercise types can never
+      // exceed the number of exercises that exist, so the axis stays
+      // stable across range changes instead of rescaling every click.
+      const yMax = KINDS.length;
+      const unitH = plotH / yMax;
+
+      const n = days.length;
+      const bandW = plotW / n;
+      const barW = Math.max(10, Math.min(38, bandW * 0.55));
+      const x = i => padL + bandW * (i + 0.5);
+
+      const svgns = 'http://www.w3.org/2000/svg';
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.innerHTML = '';
+
+      const bg = document.createElementNS(svgns, 'rect');
+      bg.setAttribute('x', 0);
+      bg.setAttribute('y', 0);
+      bg.setAttribute('width', W);
+      bg.setAttribute('height', H);
+      bg.setAttribute('rx', 16);
+      bg.setAttribute('fill', 'var(--chart-surface)');
+      svg.appendChild(bg);
+
+      for (let v = 0; v <= yMax; v++) {
+        const gy = padT + plotH - v * unitH;
+        const line = document.createElementNS(svgns, 'line');
+        line.setAttribute('x1', padL);
+        line.setAttribute('x2', W - padR);
+        line.setAttribute('y1', gy);
+        line.setAttribute('y2', gy);
+        line.setAttribute('class', 'gridline');
+        svg.appendChild(line);
+
+        if (v > 0) {
+          const label = document.createElementNS(svgns, 'text');
+          label.setAttribute('x', padL - 6);
+          label.setAttribute('y', gy + 3);
+          label.setAttribute('text-anchor', 'end');
+          label.setAttribute('class', 'axis-text');
+          label.textContent = v;
+          svg.appendChild(label);
+        }
+      }
+
+      const maxLabels = Math.max(3, Math.floor(plotW / 60));
+      const labelEvery = Math.max(1, Math.ceil(n / maxLabels));
+      days.forEach((d, i) => {
+        if (i % labelEvery !== 0 && i !== n - 1) return;
+        const label = document.createElementNS(svgns, 'text');
+        label.setAttribute('text-anchor', 'end');
+        label.setAttribute('class', 'axis-text');
+        label.setAttribute('transform', `translate(${x(i)} ${H - padB + 18}) rotate(-40)`);
+        label.textContent = formatDate(d.date);
+        svg.appendChild(label);
+      });
+
+      days.forEach((d, i) => {
+        let baseline = padT + plotH;
+        const cx = x(i);
+        KINDS.forEach(kind => {
+          if (!d.kinds.has(kind)) return;
+          const rect = document.createElementNS(svgns, 'rect');
+          rect.setAttribute('x', cx - barW / 2);
+          rect.setAttribute('y', baseline - unitH + 1);
+          rect.setAttribute('width', barW);
+          rect.setAttribute('height', unitH - 2);
+          rect.setAttribute('rx', 3);
+          rect.setAttribute('fill', COLORS[kind]);
+          svg.appendChild(rect);
+          baseline -= unitH;
+        });
+      });
+
+      const crosshair = document.createElementNS(svgns, 'line');
+      crosshair.setAttribute('y1', padT);
+      crosshair.setAttribute('y2', H - padB);
+      crosshair.setAttribute('class', 'crosshair-line');
+      svg.appendChild(crosshair);
+
+      const hit = document.createElementNS(svgns, 'rect');
+      hit.setAttribute('x', padL);
+      hit.setAttribute('y', padT);
+      hit.setAttribute('width', plotW);
+      hit.setAttribute('height', plotH);
+      hit.setAttribute('fill', 'transparent');
+      svg.appendChild(hit);
+
+      const tooltip = document.getElementById('tooltip');
+
+      function showAt(i) {
+        const d = days[i];
+        crosshair.setAttribute('x1', x(i));
+        crosshair.setAttribute('x2', x(i));
+        crosshair.style.display = 'block';
+
+        tooltip.innerHTML = '';
+        const dateEl = document.createElement('div');
+        dateEl.className = 'tt-date';
+        dateEl.textContent = formatDate(d.date);
+        tooltip.appendChild(dateEl);
+
+        KINDS.forEach(kind => {
+          if (!d.kinds.has(kind)) return;
+          const row = document.createElement('div');
+          row.className = 'tt-row';
+          const key = document.createElement('span');
+          key.className = 'tt-key';
+          key.style.background = COLORS[kind];
+          const name = document.createElement('span');
+          name.textContent = window.I18N.t(LABEL_KEYS[kind], window.__lang);
+          row.appendChild(key);
+          row.appendChild(name);
+          tooltip.appendChild(row);
+        });
+
+        const rect = svg.getBoundingClientRect();
+        const px = (x(i) / W) * rect.width;
+        tooltip.style.left = px + 'px';
+        tooltip.style.top = '0px';
+        tooltip.style.display = 'block';
+      }
+
+      function hide() {
+        crosshair.style.display = 'none';
+        tooltip.style.display = 'none';
+      }
+
+      function handlePointer(e) {
+        const rect = svg.getBoundingClientRect();
+        const relX = ((e.clientX - rect.left) / rect.width) * W;
+        let nearest = 0, best = Infinity;
+        days.forEach((d, i) => {
+          const dist = Math.abs(x(i) - relX);
+          if (dist < best) { best = dist; nearest = i; }
+        });
+        showAt(nearest);
+      }
+
+      hit.addEventListener('pointerdown', handlePointer);
+      hit.addEventListener('pointermove', handlePointer);
+      hit.addEventListener('pointerleave', hide);
+    }
+
+    function toCsv() {
+      const header = [window.I18N.t('table_date', window.__lang), ...KINDS.map(k => window.I18N.t(LABEL_KEYS[k], window.__lang))];
+      const rows = days.map(d => [formatDate(d.date), ...KINDS.map(k => (d.kinds.has(k) ? '1' : '0'))]);
+      return [header, ...rows].map(r => r.join(',')).join('\n');
+    }
+
+    window.exportCsv = function () {
+      const csv = toCsv();
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'training-overview.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    };
+
+    function applyRange() {
+      const emptyMsg = document.getElementById('range-empty-msg');
+
+      if (currentRangeDays === 'all') {
+        days = allDays;
+      } else {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - currentRangeDays);
+        days = allDays.filter(d => d.date >= cutoff);
+      }
+
+      const chartContainer = document.getElementById('chart-container');
+      const exportBtn = document.getElementById('export-btn');
+
+      if (days.length === 0) {
+        emptyMsg.textContent = window.I18N.t('no_sessions_in_range', window.__lang);
+        emptyMsg.style.display = 'block';
+        chartContainer.style.display = 'none';
+        exportBtn.style.display = 'none';
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+      chartContainer.style.display = 'block';
+      exportBtn.style.display = 'block';
+      renderChart();
+    }
+
+    function setupRangeFilter() {
+      const buttons = Array.from(document.querySelectorAll('.range-pill'));
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const range = btn.dataset.range;
+          currentRangeDays = range === 'all' ? 'all' : Number(range);
+          buttons.forEach(b => b.classList.toggle('active', b === btn));
+          applyRange();
+        });
+      });
+      const defaultBtn = buttons.find(b => b.dataset.range === 'all');
+      defaultBtn.classList.add('active');
+    }
+
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        if (days.length > 0) renderChart();
+      }, 150);
+    });
+
+    async function init() {
+      document.getElementById('retry-btn').style.display = 'none';
+      window.__lang = await applyUserLanguage();
+      window.I18N.translatePage(window.__lang);
+
+      document.getElementById('report-user-line').textContent = window.I18N.t('for_user_prefix', window.__lang) + localStorage.getItem('helth_user');
+      document.getElementById('state-msg').textContent = window.I18N.t('loading_sessions', window.__lang);
+
+      try {
+        allDays = await loadAllDays();
+      } catch (err) {
+        document.getElementById('state-msg').textContent = window.I18N.t('could_not_load_sessions', window.__lang) + err.message;
+        document.getElementById('retry-btn').style.display = 'block';
+        return;
+      }
+
+      if (allDays.length === 0) {
+        document.getElementById('state-msg').textContent = window.I18N.t('no_training_overview_data', window.__lang);
+        return;
+      }
+
+      document.getElementById('state-msg').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+      renderLegend();
+      setupRangeFilter();
+      applyRange();
+    }
+
+    document.getElementById('retry-btn').addEventListener('click', init);
+    init();
+  </script>
+
+  <a class="back-fab" href="training-reports.html" data-i18n-aria="back_training_reports" aria-label="Back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </a>
+</body>
+</html>

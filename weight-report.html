@@ -206,6 +206,11 @@
           <button class="range-pill" data-range="all" data-i18n="range_all">All Time</button>
         </div>
 
+        <div class="range-filter" id="projection-toggle-row" style="display:none; margin-bottom:14px;">
+          <button class="range-pill" id="projection-toggle-btn" data-i18n="show_projection_toggle">Show projection to target</button>
+          <button class="range-pill" id="full-view-btn" data-i18n="full_view_btn">Full View</button>
+        </div>
+
         <div id="range-empty-msg" class="state-msg" style="display:none;"></div>
 
         <div id="chart-container">
@@ -253,10 +258,11 @@
   </script>
 
   <script type="module">
-    import { getWeightSessions, updateWeight, deleteWeight, applyUserTheme, applyUserLanguage } from './db.js';
+    import { getWeightSessions, updateWeight, deleteWeight, getUserProfile, applyUserTheme, applyUserLanguage } from './db.js';
     applyUserTheme();
 
     const SERIES_HEX = '#FF5722';
+    const PROJECTION_HEX = '#00A8B5';
     const EDIT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
     const DELETE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
     let editingId = null;
@@ -264,6 +270,62 @@
     let allSessions = [];
     let sessions = [];
     let currentRangeDays = 'all';
+
+    // --- Projection towards the destination weight set in Settings ---
+    // Uses a fixed healthy pace (0.5 kg/week - a standard safe weight-loss
+    // rate) rather than fitting a trend to the actual data, so it's a
+    // steady reference line to compare against, not a noisy extrapolation.
+    //
+    // The range-filter pills (Week/Month/.../All Time) and the projection
+    // controls (Show projection to target / Full View) are two UNRELATED
+    // axes - the range filter only ever affects which actual logged points
+    // are plotted. Projection mode is a separate 3-state choice:
+    //   'off'     - no projection drawn.
+    //   'clipped' - "Show projection to target": pace line anchored to the
+    //               first point of the CURRENTLY FILTERED range, clipped to
+    //               only the segment overlapping the logged date range - so
+    //               it depends on whichever range pill is active.
+    //   'full'    - "Full View": pace line anchored to the all-time first
+    //               entry, drawn all the way out to the target date
+    //               regardless of which range pill is selected.
+    const HEALTHY_LOSS_KG_PER_DAY = 0.5 / 7;
+    let destinationWeight = null;
+    let projectionMode = localStorage.getItem('helth_weight_projection_mode') || 'off';
+    let projectionClipped = null; // recomputed per range change, from `sessions`
+    let projectionFull = null;    // computed once from `allSessions`, ignores range
+
+    function buildProjection(anchorSessions) {
+      if (destinationWeight == null || anchorSessions.length === 0) return null;
+
+      const firstWeight = anchorSessions[0].value;
+      const firstDate = anchorSessions[0].recordedAt;
+
+      // A "healthy LOSS rate" only makes sense when the goal is actually
+      // below the starting weight; skip it rather than project a loss
+      // pace toward a heavier target.
+      if (destinationWeight >= firstWeight) return null;
+
+      const daysNeeded = (firstWeight - destinationWeight) / HEALTHY_LOSS_KG_PER_DAY;
+      const targetDate = new Date(firstDate.getTime() + daysNeeded * 86400000);
+
+      return { firstWeight, firstDate, targetDate };
+    }
+
+    function computeProjectionClipped() {
+      projectionClipped = buildProjection(sessions);
+    }
+
+    function computeProjectionFull() {
+      projectionFull = buildProjection(allSessions);
+    }
+
+    // Value a given projection's healthy-pace line would be at on a given
+    // date (clamped so it never overshoots past the target weight).
+    function paceValueAt(proj, date) {
+      const days = (date.getTime() - proj.firstDate.getTime()) / 86400000;
+      const value = proj.firstWeight - HEALTHY_LOSS_KG_PER_DAY * days;
+      return Math.max(value, destinationWeight);
+    }
 
     function formatDate(d) {
       const locale = window.__lang === 'he' ? 'he-IL' : undefined;
@@ -397,7 +459,19 @@
       const plotW = W - padL - padR;
       const plotH = H - padT - padB;
 
+      // Drawing the projection needs extra headroom: the goal weight may
+      // sit outside the actual data's min/max, and full view needs room
+      // to the right of the last real point to draw out to the target.
+      const drawClipped = projectionMode === 'clipped' && !!projectionClipped;
+      const drawFull = projectionMode === 'full' && !!projectionFull;
+
       const allValues = sessions.map(s => s.value);
+      if (drawClipped) {
+        allValues.push(paceValueAt(projectionClipped, sessions[sessions.length - 1].recordedAt));
+      }
+      if (drawFull) {
+        allValues.push(destinationWeight);
+      }
       let yMin = Math.min(...allValues);
       let yMax = Math.max(...allValues);
       yMin = Math.floor((yMin - 2) / 5) * 5;
@@ -405,7 +479,24 @@
       if (yMin === yMax) { yMin -= 5; yMax += 5; }
 
       const n = sessions.length;
-      const x = i => n === 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
+
+      // A true calendar-date x-axis (not one point per index, evenly
+      // spaced) - required for the projection's slope to be visually
+      // honest: the healthy-pace line covers real weeks/months while the
+      // logged history might only cover days, and those two spans need to
+      // be shown at the same scale for the steepness to mean anything.
+      let xDomainStart = sessions[0].recordedAt;
+      let xDomainEnd = sessions[n - 1].recordedAt;
+      if (drawFull) {
+        xDomainStart = projectionFull.firstDate;
+        xDomainEnd = projectionFull.targetDate;
+      }
+      if (xDomainEnd.getTime() <= xDomainStart.getTime()) {
+        xDomainEnd = new Date(xDomainStart.getTime() + 86400000);
+      }
+      const domainMs = xDomainEnd.getTime() - xDomainStart.getTime();
+      const xDate = d => padL + ((d.getTime() - xDomainStart.getTime()) / domainMs) * plotW;
+      const x = i => xDate(sessions[i].recordedAt);
       const y = v => padT + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
 
       const svgns = 'http://www.w3.org/2000/svg';
@@ -481,6 +572,64 @@
       last.setAttribute('class', 'end-label');
       last.textContent = sessions[sessions.length - 1].value + ' ' + window.I18N.t('unit_kg', window.__lang);
       svg.appendChild(last);
+
+      // Healthy-pace (0.5 kg/week) reference line.
+      // Clipped ("Show projection to target"): anchored to the currently
+      // filtered range, drawn only across that range's actual span - a
+      // direct like-for-like comparison against the actual line.
+      // Full ("Full View"): anchored to the all-time first entry, drawn
+      // all the way out to the target date regardless of the range filter.
+      if (drawClipped || drawFull) {
+        const locale = window.__lang === 'he' ? 'he-IL' : undefined;
+        const activeProjection = drawFull ? projectionFull : projectionClipped;
+        const startX = xDate(activeProjection.firstDate);
+        const startY = y(activeProjection.firstWeight);
+
+        let endX, endY;
+        if (drawFull) {
+          endX = xDate(projectionFull.targetDate);
+          endY = y(destinationWeight);
+        } else {
+          endX = xDate(sessions[sessions.length - 1].recordedAt);
+          endY = y(paceValueAt(activeProjection, sessions[sessions.length - 1].recordedAt));
+        }
+
+        const dashed = document.createElementNS(svgns, 'path');
+        dashed.setAttribute('d', `M${startX} ${startY} L${endX} ${endY}`);
+        dashed.setAttribute('stroke', PROJECTION_HEX);
+        dashed.setAttribute('stroke-width', '2.5');
+        dashed.setAttribute('stroke-dasharray', '6 5');
+        dashed.setAttribute('stroke-linecap', 'round');
+        dashed.setAttribute('fill', 'none');
+        svg.appendChild(dashed);
+
+        if (drawFull) {
+          const goalMarker = document.createElementNS(svgns, 'circle');
+          goalMarker.setAttribute('cx', endX);
+          goalMarker.setAttribute('cy', endY);
+          goalMarker.setAttribute('r', 5);
+          goalMarker.setAttribute('fill', PROJECTION_HEX);
+          goalMarker.setAttribute('class', 'marker');
+          svg.appendChild(goalMarker);
+
+          const goalLabel1 = document.createElementNS(svgns, 'text');
+          goalLabel1.setAttribute('x', endX);
+          goalLabel1.setAttribute('y', endY - 14);
+          goalLabel1.setAttribute('text-anchor', 'end');
+          goalLabel1.setAttribute('class', 'end-label');
+          goalLabel1.setAttribute('fill', PROJECTION_HEX);
+          goalLabel1.textContent = destinationWeight + ' ' + window.I18N.t('unit_kg', window.__lang);
+          svg.appendChild(goalLabel1);
+
+          const goalLabel2 = document.createElementNS(svgns, 'text');
+          goalLabel2.setAttribute('x', endX);
+          goalLabel2.setAttribute('y', endY + 18);
+          goalLabel2.setAttribute('text-anchor', 'end');
+          goalLabel2.setAttribute('class', 'axis-text');
+          goalLabel2.textContent = activeProjection.targetDate.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
+          svg.appendChild(goalLabel2);
+        }
+      }
 
       // crosshair
       const crosshair = document.createElementNS(svgns, 'line');
@@ -601,12 +750,46 @@
       emptyMsg.style.display = 'none';
       chartContainer.style.display = 'block';
       exportBtn.style.display = 'block';
+      computeProjectionClipped();
       renderChart();
       renderTable();
     }
 
+    // "Show projection to target" and "Full View" are mutually exclusive -
+    // clicking one selects that mode, clicking the active one again turns
+    // projection off, clicking the other switches modes directly.
+    function setupProjectionToggle() {
+      const row = document.getElementById('projection-toggle-row');
+      if (destinationWeight == null) {
+        row.style.display = 'none';
+        return;
+      }
+      row.style.display = 'flex';
+      const btn = document.getElementById('projection-toggle-btn');
+      const fullViewBtn = document.getElementById('full-view-btn');
+
+      function refreshButtons() {
+        btn.classList.toggle('active', projectionMode === 'clipped');
+        fullViewBtn.classList.toggle('active', projectionMode === 'full');
+      }
+      refreshButtons();
+
+      function setMode(mode) {
+        projectionMode = (projectionMode === mode) ? 'off' : mode;
+        localStorage.setItem('helth_weight_projection_mode', projectionMode);
+        refreshButtons();
+        renderChart();
+      }
+
+      btn.addEventListener('click', () => setMode('clipped'));
+      fullViewBtn.addEventListener('click', () => setMode('full'));
+    }
+
     function setupRangeFilter() {
-      const buttons = Array.from(document.querySelectorAll('.range-pill'));
+      // Scoped to #range-filter specifically - the projection toggle
+      // buttons reuse the same .range-pill class for styling but must
+      // stay completely unrelated to range selection.
+      const buttons = Array.from(document.querySelectorAll('#range-filter .range-pill'));
       buttons.forEach(btn => {
         btn.addEventListener('click', () => {
           const range = btn.dataset.range;
@@ -649,8 +832,17 @@
         return;
       }
 
+      try {
+        const profile = await getUserProfile();
+        destinationWeight = profile && profile.destinationWeight ? profile.destinationWeight : null;
+      } catch (err) {
+        destinationWeight = null; // keep the chart usable even if the profile fetch fails
+      }
+      computeProjectionFull();
+
       document.getElementById('state-msg').style.display = 'none';
       document.getElementById('content').style.display = 'block';
+      setupProjectionToggle();
       setupRangeFilter();
       applyRange();
     }
