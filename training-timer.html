@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FF5722">
+<link rel="icon" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Helth">
+<title>Training Timer</title>
+<script>
+  if (localStorage.getItem('helth_theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  window.__getCurrentLang = function () { return window.__lang; };
+  if (window.__lang === 'he') {
+    document.documentElement.setAttribute('lang', 'he');
+    document.documentElement.setAttribute('dir', 'rtl');
+  }
+  if (!localStorage.getItem('helth_user')) {
+    window.location.replace('index.html');
+  }
+</script>
+<script src="i18n.js"></script>
+<script>
+  window.__t = window.I18N.t;
+</script>
+<link rel="stylesheet" href="styles.css">
+
+<style>
+  .countdown-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0 6px;
+  }
+
+  .countdown-display {
+    font-size: 76px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+    transition: color 0.2s ease;
+  }
+
+  .countdown-display.overtime {
+    color: #DC2626;
+  }
+</style>
+</head>
+<body>
+
+  <div class="page">
+    <div class="card">
+      <p class="eyebrow" data-i18n="eyebrow_helth">Helth</p>
+      <h1 class="headline" style="font-size:20px;" data-i18n="headline_training_timer">Training Timer</h1>
+
+      <p class="section-label" style="margin-top:0;" data-i18n="section_rest_time">Rest Time</p>
+      <div class="tile-list" style="margin-bottom:14px;">
+        <label class="field-row">
+          <span class="icon-badge badge-lava">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V9"/><path d="M9 2h6"/></svg>
+          </span>
+          <span class="field-label" data-i18n="field_rest_seconds">Rest Time (seconds)</span>
+          <input class="field-input" type="number" id="input-rest-seconds" inputmode="numeric" step="1" min="1" placeholder="--">
+        </label>
+      </div>
+      <button class="btn-secondary" id="save-rest-btn" data-i18n="save">Save</button>
+      <div class="error" id="rest-status" style="min-height:18px; color: var(--text-secondary);"></div>
+
+      <div class="countdown-wrap">
+        <div class="countdown-display" id="countdown-display">60</div>
+      </div>
+
+      <button class="btn-primary" id="start-rest-btn" data-i18n="start_rest_btn">Start Rest</button>
+    </div>
+  </div>
+
+  <script>
+    window.I18N.translatePage(window.__lang);
+  </script>
+
+  <script type="module">
+    import { applyUserTheme, applyUserLanguage } from './db.js';
+    applyUserTheme();
+    applyUserLanguage().then(lang => {
+      window.__lang = lang;
+      window.I18N.translatePage(lang);
+    });
+  </script>
+
+  <script>
+    const REST_KEY = 'helth_rest_seconds';
+    const DEFAULT_REST_SECONDS = 60;
+
+    let restSeconds = Number(localStorage.getItem(REST_KEY)) || DEFAULT_REST_SECONDS;
+    let currentCount = restSeconds;
+    let intervalId = null;
+
+    const display = document.getElementById('countdown-display');
+    document.getElementById('input-rest-seconds').value = restSeconds;
+    display.textContent = restSeconds;
+
+    // Web Audio API beep - no audio file to host, just a short sine blip.
+    let audioCtx = null;
+    function playBeep() {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.3, audioCtx.currentTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+    }
+
+    function updateDisplay() {
+      display.textContent = currentCount;
+      display.classList.toggle('overtime', currentCount <= 0);
+    }
+
+    function tick() {
+      currentCount -= 1;
+      if (currentCount === 3 || currentCount === 2 || currentCount === 1) {
+        playBeep();
+      }
+      updateDisplay();
+    }
+
+    function startRest() {
+      if (intervalId) clearInterval(intervalId);
+      currentCount = restSeconds;
+      updateDisplay();
+      intervalId = setInterval(tick, 1000);
+    }
+
+    async function saveRestSeconds() {
+      const raw = document.getElementById('input-rest-seconds').value.trim();
+      const statusEl = document.getElementById('rest-status');
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const t = window.__t;
+      const num = Number(raw);
+
+      if (raw === '' || !Number.isFinite(num) || num <= 0) {
+        statusEl.textContent = t ? window.I18N.t('err_profile_invalid', lang) : 'Please enter a positive number.';
+        return;
+      }
+
+      restSeconds = Math.round(num);
+      localStorage.setItem(REST_KEY, restSeconds);
+      if (!intervalId) {
+        currentCount = restSeconds;
+        updateDisplay();
+      }
+      statusEl.textContent = t ? window.I18N.t('saved_title', lang) : 'Saved';
+      setTimeout(() => { statusEl.textContent = ''; }, 1500);
+    }
+
+    document.getElementById('save-rest-btn').addEventListener('click', saveRestSeconds);
+    document.getElementById('start-rest-btn').addEventListener('click', startRest);
+  </script>
+
+  <a class="back-fab" href="index.html#menu" data-i18n-aria="back_home" aria-label="Back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </a>
+</body>
+</html>

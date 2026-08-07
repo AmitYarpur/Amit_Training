@@ -136,7 +136,7 @@
 
       <p class="section-label" data-i18n="section_more">More</p>
       <div class="tile-list">
-        <button class="tile-btn" onclick="comingSoon('feature_training_timers')">
+        <button class="tile-btn" onclick="window.location.href='training-timer.html'">
           <span class="icon-badge badge-slate">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 13V9"/><path d="M9 2h6"/></svg>
           </span>
@@ -286,14 +286,6 @@
       }
     }
 
-    function comingSoon(featureKey) {
-      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
-      const t = window.__t;
-      const feature = t ? window.I18N.t(featureKey, lang) : featureKey;
-      const suffix = t ? window.I18N.t('coming_soon', lang) : 'coming soon';
-      alert(feature + ' - ' + suffix);
-    }
-
     function setAuthMode(mode) {
       authMode = mode;
       document.getElementById('auth-error').textContent = '';
@@ -402,7 +394,6 @@
     }
 
     window.showScreen = showScreen;
-    window.comingSoon = comingSoon;
     window.setAuthMode = setAuthMode;
     window.submitAuth = submitAuth;
     window.doLogout = doLogout;

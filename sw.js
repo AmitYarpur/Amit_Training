@@ -5,7 +5,7 @@
 // only makes the UI itself load fast and stay viewable if the network
 // briefly drops.
 
-const CACHE_NAME = 'helth-static-v8';
+const CACHE_NAME = 'helth-static-v9';
 
 const PRECACHE_URLS = [
   './',
@@ -18,6 +18,7 @@ const PRECACHE_URLS = [
   'training.html',
   'training-reports.html',
   'training-overview-report.html',
+  'training-timer.html',
   'running.html',
   'running-report.html',
   'walking.html',

@@ -62,6 +62,12 @@ const translations = {
     tile_reports: "Reports",
     tile_settings: "Settings",
 
+    // training-timer.html
+    headline_training_timer: "Training Timer",
+    section_rest_time: "Rest Time",
+    field_rest_seconds: "Rest Time (seconds)",
+    start_rest_btn: "Start Rest",
+
     tab_home: "Home",
     tab_training: "Training",
     tab_reports: "Reports",
@@ -284,6 +290,12 @@ const translations = {
     tile_training_timers: "טיימרים לאימון",
     tile_reports: "דוחות",
     tile_settings: "הגדרות",
+
+    // training-timer.html
+    headline_training_timer: "טיימר מנוחה",
+    section_rest_time: "זמן מנוחה",
+    field_rest_seconds: "זמן מנוחה (שניות)",
+    start_rest_btn: "התחל מנוחה",
 
     tab_home: "בית",
     tab_training: "אימונים",
