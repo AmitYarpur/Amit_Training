@@ -52,6 +52,13 @@ const translations = {
     tile_reports: "Reports",
     tile_settings: "Settings",
 
+    tab_home: "Home",
+    tab_training: "Training",
+    tab_reports: "Reports",
+    tab_settings: "Settings",
+    section_quick_log: "Quick Log",
+    section_more: "More",
+
     today_headline: "Today is the {date} and {time}",
 
     // blood-pressure.html
@@ -246,6 +253,13 @@ const translations = {
     tile_training_timers: "טיימרים לאימון",
     tile_reports: "דוחות",
     tile_settings: "הגדרות",
+
+    tab_home: "בית",
+    tab_training: "אימונים",
+    tab_reports: "דוחות",
+    tab_settings: "הגדרות",
+    section_quick_log: "רישום מהיר",
+    section_more: "עוד",
 
     today_headline: "היום {date}, השעה {time}",
 

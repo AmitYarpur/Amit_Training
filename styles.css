@@ -1,61 +1,70 @@
-/* Shared design system for the Helth app */
+/* Shared design system for the Helth app — "Electric Lava"
+   Vivid neon orange accent against deep ink (dark) / crisp white (light). */
 
 :root {
-  --bg-1: #eaf2ff;
-  --bg-2: #eafbf4;
-  --bg-3: #fef6ec;
-  --page-base: #f6f8fb;
+  --bg-1: #ffffff;
+  --bg-2: #f8f9fa;
+  --bg-3: #ffffff;
+  --page-base: #ffffff;
 
-  --accent-1: #2a78d6;   /* blue */
-  --accent-2: #1baf7a;   /* teal */
+  --accent-1: #ff5722;   /* lava — primary: CTAs, active states, primary metrics */
+  --accent-2: #ff7a45;   /* lava, lighter */
   --accent-gradient: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  --accent-cyan: #00a8b5;    /* cool-down — secondary: target rings, secondary data */
+  --accent-cyan-2: #00c2d1;
 
-  --surface: rgba(255, 255, 255, 0.82);
+  --surface: #f0f2f5;
   --surface-solid: #ffffff;
-  --surface-wash: rgba(255, 255, 255, 0.6);
-  --surface-wash-strong: rgba(255, 255, 255, 0.95);
-  --field-bg: #fafbfc;
-  --ghost-btn-bg: rgba(15, 23, 34, 0.06);
-  --ghost-btn-bg-active: rgba(15, 23, 34, 0.1);
-  --border-hairline: rgba(15, 23, 34, 0.08);
+  --surface-wash: #ffffff;
+  --surface-wash-strong: #eaedf1;
+  --field-bg: #ffffff;
+  --ghost-btn-bg: rgba(17, 24, 39, 0.05);
+  --ghost-btn-bg-active: rgba(17, 24, 39, 0.09);
+  --border-hairline: rgba(17, 24, 39, 0.1);
 
-  --text-primary: #10161c;
-  --text-secondary: #5b6674;
-  --text-muted: #8b95a3;
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #98a2b3;
+  --text-on-accent: #ffffff;
 
   --radius-lg: 24px;
   --radius-md: 16px;
   --radius-sm: 10px;
 
-  --shadow-card: 0 20px 40px -16px rgba(20, 40, 60, 0.22);
-  --shadow-soft: 0 8px 20px -10px rgba(20, 40, 60, 0.18);
+  --shadow-card: 0 16px 32px -18px rgba(17, 24, 39, 0.2);
+  --shadow-soft: 0 6px 16px -8px rgba(17, 24, 39, 0.16);
+  --shadow-accent-glow: 0 10px 20px -8px rgba(255, 87, 34, 0.32);
 }
 
-/* Dark mode: dark gray surfaces, white text, olive green accent */
+/* Dark mode: deep ink-blue surfaces, neon-orange primary, electric-cyan secondary */
 :root[data-theme="dark"] {
-  --bg-1: #26261f;
-  --bg-2: #21211b;
-  --bg-3: #2a2a22;
-  --page-base: #1a1a17;
+  --bg-1: #12161f;
+  --bg-2: #0e1219;
+  --bg-3: #141a24;
+  --page-base: #0b0e14;
 
-  --accent-1: #7c9a4a;   /* olive green */
-  --accent-2: #a3bd6c;   /* lighter olive */
+  --accent-1: #ff5722;   /* lava keeps its identity in dark mode too */
+  --accent-2: #ff7a45;
+  --accent-cyan: #00f5ff;
+  --accent-cyan-2: #58fbff;
 
-  --surface: rgba(40, 40, 36, 0.82);
-  --surface-solid: #2c2c27;
-  --surface-wash: rgba(255, 255, 255, 0.05);
-  --surface-wash-strong: rgba(255, 255, 255, 0.1);
-  --field-bg: #33332c;
-  --ghost-btn-bg: rgba(255, 255, 255, 0.07);
-  --ghost-btn-bg-active: rgba(255, 255, 255, 0.13);
-  --border-hairline: rgba(255, 255, 255, 0.1);
+  --surface: #161b22;
+  --surface-solid: #1d242c;
+  --surface-wash: #1d242e;
+  --surface-wash-strong: #232b36;
+  --field-bg: #1d242e;
+  --ghost-btn-bg: rgba(255, 255, 255, 0.06);
+  --ghost-btn-bg-active: rgba(255, 255, 255, 0.12);
+  --border-hairline: rgba(255, 255, 255, 0.08);
 
-  --text-primary: #f5f5f0;
-  --text-secondary: #c7c7bd;
-  --text-muted: #93938a;
+  --text-primary: #ffffff;
+  --text-secondary: #efeef1;
+  --text-muted: #8a8f99;
+  --text-on-accent: #0b0e14;
 
-  --shadow-card: 0 20px 40px -16px rgba(0, 0, 0, 0.5);
-  --shadow-soft: 0 8px 20px -10px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 20px 44px -18px rgba(0, 0, 0, 0.65);
+  --shadow-soft: 0 10px 22px -10px rgba(0, 0, 0, 0.55);
+  --shadow-accent-glow: 0 0 0 1px rgba(255, 87, 34, 0.4), 0 0 26px rgba(255, 87, 34, 0.45);
 }
 
 * {
@@ -155,7 +164,7 @@ button {
   font-weight: 700;
   color: #fff;
   background: var(--accent-gradient);
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-accent-glow);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -344,6 +353,7 @@ button {
   background: var(--accent-gradient);
   color: #fff;
   border-color: transparent;
+  box-shadow: var(--shadow-accent-glow);
 }
 
 /* Auth form */
@@ -394,13 +404,20 @@ button {
   cursor: pointer;
 }
 
-/* Icon badge color variants */
-.badge-blue   { background: linear-gradient(135deg, #2a78d6, #4f94e6); }
-.badge-teal   { background: linear-gradient(135deg, #1baf7a, #35c98f); }
-.badge-orange { background: linear-gradient(135deg, #eb6834, #f08a5f); }
-.badge-violet { background: linear-gradient(135deg, #4a3aa7, #6f5fd6); }
-.badge-gray   { background: linear-gradient(135deg, #8b95a3, #aeb6c0); }
-.badge-pink   { background: linear-gradient(135deg, #d6558c, #e883ac); }
+/* Icon badge color variants — Electric Lava: two accents + one neutral */
+.badge-lava  { background: var(--accent-gradient); }
+.badge-cyan  { background: linear-gradient(135deg, var(--accent-cyan), var(--accent-cyan-2)); }
+.badge-slate { background: linear-gradient(135deg, #64748b, #94a3b8); }
+
+/* Bright cyan needs a dark icon in dark mode for legible contrast; higher
+   specificity than the base .tile-btn/.field-row .icon-badge white default. */
+.tile-btn .icon-badge.badge-cyan,
+.field-row .icon-badge.badge-cyan {
+  color: var(--text-on-accent);
+}
+
+:root[data-theme="dark"] .badge-lava { box-shadow: var(--shadow-accent-glow); }
+:root[data-theme="dark"] .badge-cyan { box-shadow: 0 0 0 1px rgba(0, 245, 255, 0.28), 0 0 20px rgba(0, 245, 255, 0.3); }
 
 /* Back button: fixed bottom-right on every page, same spot regardless of
    content length or language, so "go back" is always in the same place. */
@@ -412,7 +429,7 @@ button {
   height: 52px;
   border-radius: 16px;
   background: var(--accent-gradient);
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-card), var(--shadow-accent-glow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -601,7 +618,7 @@ button {
   align-items: center;
   justify-content: center;
   margin: 0 auto 14px;
-  box-shadow: var(--shadow-soft);
+  box-shadow: var(--shadow-accent-glow);
 }
 
 .checkmark-badge svg {
@@ -616,4 +633,112 @@ button {
    direction on every page, regardless of language. */
 [dir="rtl"] .tile-btn .chevron {
   transform: scaleX(-1);
+}
+
+/* Bottom tab bar: fixed primary nav on the 4 hub pages (Home, Training,
+   Reports, Settings). Drill-down pages keep the .back-fab instead. */
+.page.has-tabbar {
+  padding-bottom: calc(112px + env(safe-area-inset-bottom));
+}
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px calc(14px + env(safe-area-inset-bottom));
+  pointer-events: none;
+  z-index: 15;
+}
+
+.tabbar-inner {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 398px;
+  display: flex;
+  background: var(--surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-hairline);
+  border-radius: 20px;
+  box-shadow: var(--shadow-card);
+  padding: 8px;
+  gap: 4px;
+}
+
+.tab-item {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  border: none;
+  background: transparent;
+  border-radius: 14px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.tab-item svg {
+  width: 21px;
+  height: 21px;
+}
+
+.tab-item .tab-lbl {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.tab-item.active {
+  color: var(--accent-1);
+  background: var(--ghost-btn-bg);
+}
+
+.section-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 22px 0 10px;
+}
+
+.section-label:first-child {
+  margin-top: 0;
+}
+
+/* Quick-log grid (Home screen): 2-up cards for vitals without their own tab */
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: 16px 14px;
+  background: var(--surface-wash);
+  text-align: left;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.action-card:active {
+  transform: scale(0.97);
+  background: var(--surface-wash-strong);
+}
+
+.action-card .tile-label {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text-primary);
 }

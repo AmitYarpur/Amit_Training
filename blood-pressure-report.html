@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#2a78d6">
+<meta name="theme-color" content="#FF5722">
 <link rel="icon" href="icons/favicon.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -42,9 +42,9 @@
     --chart-muted:    #6d6c66;
     --gridline:       #cbcac5;
     --axis:           #a8a79d;
-    --series-systolic:  #2a78d6;
-    --series-diastolic: #eb6834;
-    --series-heart:     #1baf7a;
+    --series-systolic:  #FF5722;
+    --series-diastolic: #00A8B5;
+    --series-heart:     #64748B;
   }
 
   body.viz-root {
@@ -301,9 +301,9 @@
 
     function series() {
       return [
-        { key: 'systolic',   label: window.I18N.t('legend_systolic', window.__lang),   hex: '#2a78d6' },
-        { key: 'diastolic',  label: window.I18N.t('legend_diastolic', window.__lang),  hex: '#eb6834' },
-        { key: 'heart_rate', label: window.I18N.t('legend_heart_rate', window.__lang), hex: '#1baf7a' }
+        { key: 'systolic',   label: window.I18N.t('legend_systolic', window.__lang),   hex: '#FF5722' },
+        { key: 'diastolic',  label: window.I18N.t('legend_diastolic', window.__lang),  hex: '#00A8B5' },
+        { key: 'heart_rate', label: window.I18N.t('legend_heart_rate', window.__lang), hex: '#64748B' }
       ];
     }
 
