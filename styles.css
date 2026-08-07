@@ -907,3 +907,28 @@ button {
 .bmi-pill.bmi-green  { background: #16A34A; }
 .bmi-pill.bmi-yellow { background: #D97706; }
 .bmi-pill.bmi-red    { background: #DC2626; }
+
+/* Per-exercise Training icon colors, sampled from a provided reference
+   palette - scoped to the 7 Training tiles only (training.html /
+   training-reports.html); every other icon badge in the app keeps the
+   orange badge / cyan glyph system. White glyph instead of cyan, to
+   match the reference. Appended last so these definitely win over the
+   generic .badge-lava/.badge-cyan/.badge-slate rules regardless of
+   which container (.tile-btn / .square-tile / .action-card) they sit in. */
+.icon-badge.badge-running    { background: linear-gradient(135deg, #3480DA, #619CE2); color: #fff; }
+.icon-badge.badge-walking    { background: linear-gradient(135deg, #22B680, #53C69C); color: #fff; }
+.icon-badge.badge-pulldown   { background: linear-gradient(135deg, #5545B4, #7A6EC4); color: #fff; }
+.icon-badge.badge-benchpress { background: linear-gradient(135deg, #ED7240, #F1916A); color: #fff; }
+.icon-badge.badge-abs        { background: linear-gradient(135deg, #DB6295, #E385AC); color: #fff; }
+.icon-badge.badge-plank      { background: linear-gradient(135deg, #949EAB, #ACB3BD); color: #fff; }
+.icon-badge.badge-pilates    { background: linear-gradient(135deg, #3480DA, #619CE2); color: #fff; }
+
+:root[data-theme="dark"] .icon-badge.badge-running,
+:root[data-theme="dark"] .icon-badge.badge-walking,
+:root[data-theme="dark"] .icon-badge.badge-pulldown,
+:root[data-theme="dark"] .icon-badge.badge-benchpress,
+:root[data-theme="dark"] .icon-badge.badge-abs,
+:root[data-theme="dark"] .icon-badge.badge-plank,
+:root[data-theme="dark"] .icon-badge.badge-pilates {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 16px -6px rgba(0, 0, 0, 0.5);
+}
