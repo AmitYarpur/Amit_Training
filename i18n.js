@@ -139,6 +139,8 @@ const translations = {
     tile_bp_reports: "Blood Pressure Reports",
     tile_weight_reports: "Weight Reports",
     tile_training_reports: "Training Reports",
+    tile_health_reports: "Health Reports",
+    headline_health_reports: "Health Reports",
     tile_training_overview: "Training Overview",
     training_overview_subtext: "All 7 exercises, one graph",
 
@@ -368,6 +370,8 @@ const translations = {
     tile_bp_reports: "דוחות לחץ דם",
     tile_weight_reports: "דוחות משקל",
     tile_training_reports: "דוחות אימונים",
+    tile_health_reports: "דוחות בריאות",
+    headline_health_reports: "דוחות בריאות",
     tile_training_overview: "סקירת אימונים",
     training_overview_subtext: "כל 7 האימונים, גרף אחד",
 

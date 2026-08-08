@@ -229,7 +229,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent-cyan);
+  color: #fff;
 }
 
 .tile-btn .icon-badge svg {
@@ -287,7 +287,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent-cyan);
+  color: #fff;
 }
 
 .field-row .icon-badge svg {
@@ -404,19 +404,21 @@ button {
   cursor: pointer;
 }
 
-/* Icon badges — Electric Lava: all badges are lava orange, all glyphs cyan.
-   Kept as three selectors (rather than renaming classes again in every
-   page) so a future split back into variants is a one-line change. */
+/* Icon badges: all badges blue, all glyphs white. Kept as three selectors
+   (rather than renaming classes again in every page) so a future split
+   back into variants is a one-line change. Blue reuses the same tone as
+   the Running/Pilates training icons, for one consistent blue app-wide
+   rather than a second, different blue. */
 .badge-lava,
 .badge-cyan,
 .badge-slate {
-  background: var(--accent-gradient);
+  background: linear-gradient(135deg, #3480DA, #619CE2);
 }
 
 :root[data-theme="dark"] .badge-lava,
 :root[data-theme="dark"] .badge-cyan,
 :root[data-theme="dark"] .badge-slate {
-  box-shadow: var(--shadow-accent-glow);
+  box-shadow: 0 0 0 1px rgba(52, 128, 218, 0.4), 0 0 22px rgba(52, 128, 218, 0.45);
 }
 
 /* Back button: fixed bottom-right on every page, same spot regardless of
@@ -745,7 +747,16 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent-cyan);
+  color: #fff;
+}
+
+/* Some icon-badges are a real <img> (a full pre-rendered icon graphic,
+   e.g. Blood Pressure) rather than a colored div + glyph - object-fit
+   keeps it filling/clipped to whatever size the container context gives
+   .icon-badge, without stretching. */
+img.icon-badge {
+  display: block;
+  object-fit: cover;
 }
 
 .action-card .icon-badge svg {
@@ -800,18 +811,23 @@ button {
 }
 
 .square-tile .icon-badge {
-  width: 54px;
-  height: 54px;
-  border-radius: 16px;
+  width: 104px;
+  height: 104px;
+  border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent-cyan);
+  color: #fff;
 }
 
 .square-tile .mask-icon {
-  width: 28px;
-  height: 28px;
+  width: 76px;
+  height: 76px;
+}
+
+.square-tile .icon-badge svg {
+  width: 64px;
+  height: 64px;
 }
 
 .square-tile .tile-label {

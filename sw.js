@@ -5,7 +5,7 @@
 // only makes the UI itself load fast and stay viewable if the network
 // briefly drops.
 
-const CACHE_NAME = 'helth-static-v10';
+const CACHE_NAME = 'helth-static-v13';
 
 const PRECACHE_URLS = [
   './',
@@ -19,6 +19,7 @@ const PRECACHE_URLS = [
   'training-reports.html',
   'training-overview-report.html',
   'training-timer.html',
+  'health-reports.html',
   'running.html',
   'running-report.html',
   'walking.html',
@@ -41,7 +42,9 @@ const PRECACHE_URLS = [
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/apple-touch-icon.png',
-  'icons/favicon.png'
+  'icons/favicon.png',
+  'icons/bp-icon.png',
+  'icons/weight-icon.png'
 ];
 
 self.addEventListener('install', event => {
