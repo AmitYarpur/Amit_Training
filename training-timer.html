@@ -106,8 +106,21 @@
 
     // Web Audio API beep - no audio file to host, just a short sine blip.
     let audioCtx = null;
-    function playBeep() {
+    // iOS only allows an AudioContext to start/resume as part of a
+    // synchronous user-gesture handler (a tap) - creating it lazily
+    // inside the setInterval tick (as this used to) is too late, since
+    // that callback isn't itself a gesture, so iOS silently keeps the
+    // context suspended and no sound plays. Unlocking it here, directly
+    // in the Start Rest click handler, lets the later async beeps work.
+    function unlockAudio() {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playBeep() {
+      if (!audioCtx) return;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.type = 'sine';
@@ -135,6 +148,7 @@
     }
 
     function startRest() {
+      unlockAudio();
       if (intervalId) clearInterval(intervalId);
       currentCount = restSeconds;
       updateDisplay();
