@@ -144,6 +144,24 @@
 
   </div>
 
+  <div class="overlay" id="bmi-info-overlay">
+    <div class="modal">
+      <h2 data-i18n="bmi_index_title">BMI Index</h2>
+
+      <div id="bmi-gauge-wrap" style="position:relative; max-width:260px; margin:4px auto 8px;">
+        <svg id="bmi-gauge-svg" viewBox="0 0 300 170" style="width:100%; height:auto; display:block;"></svg>
+        <div style="position:absolute; left:0; right:0; bottom:2px; text-align:center;">
+          <div id="bmi-gauge-number" style="font-size:26px; font-weight:800; color:var(--text-primary); line-height:1;"></div>
+          <div id="bmi-gauge-category" style="font-size:12px; font-weight:700; margin-top:2px;"></div>
+        </div>
+      </div>
+
+      <div id="bmi-legend"></div>
+
+      <button class="btn-secondary" id="bmi-info-close-btn" style="margin-top:14px;" data-i18n="close">Close</button>
+    </div>
+  </div>
+
   <div class="tabbar" id="app-tabbar" style="display:none;">
     <div class="tabbar-inner">
       <a class="tab-item active" href="index.html#menu">
@@ -162,8 +180,22 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3.9a7.6 7.6 0 0 0-1.8-1L15 3.5h-4l-.3 2.5a7.6 7.6 0 0 0-1.8 1l-2.3-.9-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9a7.6 7.6 0 0 0 1.8 1l.3 2.5h4l.3-2.5a7.6 7.6 0 0 0 1.8-1l2.3.9 2-3.4-2-1.5Z"/></svg>
         <span class="tab-lbl" data-i18n="tab_settings">Settings</span>
       </a>
+      <a class="tab-item" id="admin-tab-item" href="admin.html" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z"/><path d="M9 12l2 2 4-4"/></svg>
+        <span class="tab-lbl" data-i18n="tab_admin">Admin</span>
+      </a>
     </div>
   </div>
+
+  <script>
+    (function () {
+      var u = localStorage.getItem('helth_user');
+      if (u && u.toLowerCase() === 'amit') {
+        var el = document.getElementById('admin-tab-item');
+        if (el) el.style.display = '';
+      }
+    })();
+  </script>
 
   <script>
     window.I18N.translatePage(window.__lang);
@@ -220,6 +252,103 @@
       return { key: 'obese', cls: 'bmi-red' };
     }
 
+    // --- BMI reference gauge (popup from tapping the BMI pill) ---------
+    // A more detailed 5-band reference than the pill's simplified 3-color
+    // system, matching the standard WHO chart. Gauge visualizes 15-40;
+    // "Extremely Obese" is open-ended above 35 in reality, capped here
+    // just for layout.
+    const BMI_BANDS = [
+      { key: 'underweight', min: 15, max: 18.5, color: '#3480DA', range: '< 18.5' },
+      { key: 'normal', min: 18.5, max: 25, color: '#16A34A', range: '18.5 – 24.9' },
+      { key: 'overweight', min: 25, max: 30, color: '#D97706', range: '25.0 – 29.9' },
+      { key: 'obese', min: 30, max: 35, color: '#EA580C', range: '30.0 – 34.9' },
+      { key: 'extremely_obese', min: 35, max: 40, color: '#DC2626', range: '> 35.0' }
+    ];
+    const BMI_GAUGE_MIN = 15, BMI_GAUGE_MAX = 40;
+    let currentBmiValue = null;
+
+    function bmiBandFor(value) {
+      for (const band of BMI_BANDS) {
+        if (value < band.max) return band;
+      }
+      return BMI_BANDS[BMI_BANDS.length - 1];
+    }
+
+    function bmiGaugePoint(cx, cy, r, value) {
+      const f = Math.max(0, Math.min(1, (value - BMI_GAUGE_MIN) / (BMI_GAUGE_MAX - BMI_GAUGE_MIN)));
+      const angle = (180 - f * 180) * Math.PI / 180;
+      return { x: cx + r * Math.cos(angle), y: cy - r * Math.sin(angle) };
+    }
+
+    function renderBmiGauge(bmiValue) {
+      const svg = document.getElementById('bmi-gauge-svg');
+      const svgns = 'http://www.w3.org/2000/svg';
+      svg.innerHTML = '';
+      const cx = 150, cy = 150, rOuter = 125, rInner = 85;
+
+      BMI_BANDS.forEach(band => {
+        const p0 = bmiGaugePoint(cx, cy, rOuter, band.min);
+        const p1 = bmiGaugePoint(cx, cy, rOuter, band.max);
+        const q1 = bmiGaugePoint(cx, cy, rInner, band.max);
+        const q0 = bmiGaugePoint(cx, cy, rInner, band.min);
+        const path = document.createElementNS(svgns, 'path');
+        path.setAttribute('d', `M${p0.x} ${p0.y} A${rOuter} ${rOuter} 0 0 1 ${p1.x} ${p1.y} L${q1.x} ${q1.y} A${rInner} ${rInner} 0 0 0 ${q0.x} ${q0.y} Z`);
+        path.setAttribute('fill', band.color);
+        svg.appendChild(path);
+      });
+
+      const needlePos = bmiGaugePoint(cx, cy, (rOuter + rInner) / 2, bmiValue);
+      const needle = document.createElementNS(svgns, 'circle');
+      needle.setAttribute('cx', needlePos.x);
+      needle.setAttribute('cy', needlePos.y);
+      needle.setAttribute('r', 10);
+      needle.setAttribute('fill', '#fff');
+      needle.setAttribute('stroke', '#111');
+      needle.setAttribute('stroke-width', '2.5');
+      svg.appendChild(needle);
+    }
+
+    function renderBmiLegend() {
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const wrap = document.getElementById('bmi-legend');
+      wrap.innerHTML = '';
+      BMI_BANDS.forEach(band => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:6px 0;';
+        const swatch = document.createElement('span');
+        swatch.style.cssText = 'width:14px; height:14px; border-radius:4px; flex:0 0 auto; background:' + band.color;
+        const label = document.createElement('span');
+        label.style.cssText = 'flex:1 1 auto; font-size:13px; font-weight:600; color:var(--text-primary); text-align:start;';
+        label.textContent = window.__t ? window.I18N.t('bmi_' + band.key, lang) : band.key;
+        const range = document.createElement('span');
+        range.style.cssText = 'font-size:12px; color:var(--text-muted); font-variant-numeric: tabular-nums;';
+        range.textContent = band.range;
+        row.appendChild(swatch);
+        row.appendChild(label);
+        row.appendChild(range);
+        wrap.appendChild(row);
+      });
+    }
+
+    function openBmiInfoModal() {
+      if (currentBmiValue == null) return;
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const band = bmiBandFor(currentBmiValue);
+      document.getElementById('bmi-gauge-number').textContent = currentBmiValue.toFixed(1);
+      const catEl = document.getElementById('bmi-gauge-category');
+      catEl.textContent = window.__t ? window.I18N.t('bmi_' + band.key, lang) : band.key;
+      catEl.style.color = band.color;
+      renderBmiGauge(currentBmiValue);
+      renderBmiLegend();
+      document.getElementById('bmi-info-overlay').classList.add('active');
+    }
+
+    function closeBmiInfoModal() {
+      document.getElementById('bmi-info-overlay').classList.remove('active');
+    }
+
+    document.getElementById('bmi-info-close-btn').addEventListener('click', closeBmiInfoModal);
+
     function renderHomeStats(currentWeight, height, destWeight) {
       const section = document.getElementById('stats-section');
       if (currentWeight == null) {
@@ -241,8 +370,12 @@
         const pill = document.getElementById('bmi-pill');
         pill.textContent = bmi.toFixed(1) + ' · ' + (t ? window.I18N.t('bmi_' + cat.key, lang) : cat.key);
         pill.className = 'bmi-pill ' + cat.cls;
+        pill.style.cursor = 'pointer';
+        currentBmiValue = bmi;
+        pill.onclick = openBmiInfoModal;
         bmiRow.style.display = 'flex';
       } else {
+        currentBmiValue = null;
         bmiRow.style.display = 'none';
       }
 

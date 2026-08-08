@@ -55,6 +55,9 @@ const translations = {
     bmi_normal: "Normal",
     bmi_overweight: "Overweight",
     bmi_obese: "Obese",
+    bmi_extremely_obese: "Extremely Obese",
+    bmi_index_title: "BMI Index",
+    close: "Close",
     tile_blood_pressure: "Blood Pressure",
     tile_weight: "Weight",
     tile_training: "Training",
@@ -72,8 +75,15 @@ const translations = {
     tab_training: "Training",
     tab_reports: "Reports",
     tab_settings: "Settings",
+    tab_admin: "Admin",
     section_quick_log: "Quick Log",
     section_more: "More",
+
+    // admin.html
+    headline_admin: "Administration",
+    admin_subtext: "Registered accounts. Passwords are never stored in a readable form - you can set a new one for someone, not see their current one.",
+    reset_password_title: "Reset Password",
+    new_password_label: "New password",
 
     today_headline: "Today is the {date} and {time}",
 
@@ -286,6 +296,9 @@ const translations = {
     bmi_normal: "תקין",
     bmi_overweight: "עודף משקל",
     bmi_obese: "השמנה",
+    bmi_extremely_obese: "השמנה קיצונית",
+    bmi_index_title: "מדד BMI",
+    close: "סגירה",
     tile_blood_pressure: "לחץ דם",
     tile_weight: "משקל",
     tile_training: "אימונים",
@@ -303,8 +316,15 @@ const translations = {
     tab_training: "אימונים",
     tab_reports: "דוחות",
     tab_settings: "הגדרות",
+    tab_admin: "ניהול",
     section_quick_log: "רישום מהיר",
     section_more: "עוד",
+
+    // admin.html
+    headline_admin: "ניהול",
+    admin_subtext: "חשבונות רשומים. סיסמאות לעולם לא נשמרות בצורה קריאה - ניתן להגדיר סיסמה חדשה למישהו, לא לראות את הנוכחית שלו.",
+    reset_password_title: "איפוס סיסמה",
+    new_password_label: "סיסמה חדשה",
 
     today_headline: "היום {date}, השעה {time}",
 

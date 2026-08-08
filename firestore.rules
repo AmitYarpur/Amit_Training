@@ -6,7 +6,10 @@ rules_version = '2';
                       && request.resource.data.passwordHash is string
                       && request.resource.data.passwordHash.size() == 64;
         allow read: if true;
-        allow update, delete: if false;
+        allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['passwordHash'])
+                      && request.resource.data.passwordHash is string
+                      && request.resource.data.passwordHash.size() == 64;
+        allow delete: if false;
       }
 
       match /users/{username} {

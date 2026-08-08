@@ -158,6 +158,22 @@ export async function login(username, password) {
   return username;
 }
 
+// --- Admin: list accounts + reset a password ---------------------------
+// Passwords are never retrievable - only a one-way hash is ever stored -
+// so "admin" here means "list who has an account" and "overwrite someone
+// else's password hash with a new one", not "see existing passwords".
+
+export async function getAllUsernames() {
+  const snap = await withTimeout(getDocs(collection(db, "credentials")), "admin:listUsers");
+  return snap.docs.map(d => d.id).sort((a, b) => a.localeCompare(b));
+}
+
+export async function adminResetPassword(username, newPassword) {
+  if (!newPassword) throw new Error("Please enter a new password.");
+  const passwordHash = await hashPassword(newPassword);
+  await withTimeout(updateDoc(credentialRef(username), { passwordHash }), "admin:resetPassword");
+}
+
 export function getCurrentUser() {
   return localStorage.getItem(SESSION_KEY);
 }

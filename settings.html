@@ -386,7 +386,21 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.5-2-3.4-2.3.9a7.6 7.6 0 0 0-1.8-1L15 3.5h-4l-.3 2.5a7.6 7.6 0 0 0-1.8 1l-2.3-.9-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.5 2 3.4 2.3-.9a7.6 7.6 0 0 0 1.8 1l.3 2.5h4l.3-2.5a7.6 7.6 0 0 0 1.8-1l2.3.9 2-3.4-2-1.5Z"/></svg>
         <span class="tab-lbl" data-i18n="tab_settings">Settings</span>
       </a>
+      <a class="tab-item" id="admin-tab-item" href="admin.html" style="display:none;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z"/><path d="M9 12l2 2 4-4"/></svg>
+        <span class="tab-lbl" data-i18n="tab_admin">Admin</span>
+      </a>
     </div>
   </div>
+
+  <script>
+    (function () {
+      var u = localStorage.getItem('helth_user');
+      if (u && u.toLowerCase() === 'amit') {
+        var el = document.getElementById('admin-tab-item');
+        if (el) el.style.display = '';
+      }
+    })();
+  </script>
 </body>
 </html>
