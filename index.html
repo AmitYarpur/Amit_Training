@@ -17,6 +17,15 @@
   }
   window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
   window.__getCurrentLang = function () { return window.__lang; };
+  // The db.js module script below is deferred by spec (executes after the
+  // document finishes parsing), but the classic script at the bottom of
+  // this page runs immediately and can call loadHomeStats() before that
+  // module has assigned window.__getWeightSessions/__getUserProfile - most
+  // visibly when navigating here straight from the tabbar (index.html#menu)
+  // rather than through the Welcome screen's Start button, which gives the
+  // module time to load. This promise lets loadHomeStats() wait for real
+  // readiness instead of silently no-op'ing when it loses that race.
+  window.__dbReady = new Promise(resolve => { window.__dbReadyResolve = resolve; });
   if (window.__lang === 'he') {
     document.documentElement.setAttribute('lang', 'he');
     document.documentElement.setAttribute('dir', 'rtl');
@@ -209,6 +218,7 @@
     window.__applyUserLanguage = applyUserLanguage;
     window.__getWeightSessions = getWeightSessions;
     window.__getUserProfile = getUserProfile;
+    window.__dbReadyResolve();
 
     // Reconciles theme + language against Firestore for the case where the
     // page loads already-logged-in (module executes after the classic
@@ -400,6 +410,13 @@
     }
 
     async function loadHomeStats() {
+      // Wait for the module script to be ready rather than bailing
+      // immediately - see the __dbReady comment in <head> for why this
+      // race exists.
+      await Promise.race([
+        window.__dbReady,
+        new Promise(resolve => setTimeout(resolve, 8000))
+      ]);
       if (!window.__getWeightSessions || !window.__getUserProfile) return;
       try {
         const [weightSessions, profile] = await Promise.all([
