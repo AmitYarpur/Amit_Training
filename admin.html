@@ -183,5 +183,15 @@
       </a>
     </div>
   </div>
+
+  <script>
+    // The tabbar markup above comes after the earlier translatePage()
+    // call in this document, so that first pass can't reach it (its
+    // elements don't exist yet) - without this, the tabbar shows raw
+    // English until the module script's Firestore round-trip catches up
+    // a moment later. Re-running here, now that the tabbar exists, is
+    // what makes it correct on the very first paint.
+    window.I18N.translatePage(window.__lang);
+  </script>
 </body>
 </html>
