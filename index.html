@@ -15,7 +15,13 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
-  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  // Per-user cache key first (survives logout, so a returning user's
+  // language paints correctly first try even on a shared device where
+  // someone else logged out last) - falls back to the generic key when
+  // this account hasn't been seen on this device before.
+  var __cachedUser = localStorage.getItem('helth_user');
+  var __cachedLang = (__cachedUser && localStorage.getItem('helth_lang_' + __cachedUser)) || localStorage.getItem('helth_lang');
+  window.__lang = __cachedLang === 'he' ? 'he' : 'en';
   window.__getCurrentLang = function () { return window.__lang; };
   // The db.js module script below is deferred by spec (executes after the
   // document finishes parsing), but the classic script at the bottom of

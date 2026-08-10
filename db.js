@@ -232,11 +232,22 @@ export async function applyUserTheme() {
   localStorage.setItem(THEME_KEY, theme);
 }
 
+// Per-user cache key, so one account's language survives logout on a
+// shared device without leaking into whoever logs in next. Each page's
+// inline boot script (in <head>, before this module even loads) reads
+// this key first when picking window.__lang - that's what lets a
+// Hebrew user's page paint in Hebrew immediately instead of flashing
+// English until this module's applyUserLanguage() round-trip resolves.
+function perUserLangKey(username) {
+  return LANG_KEY + "_" + username;
+}
+
 // language: "en" | "he"
 export async function saveLanguagePreference(language, username = getCurrentUser()) {
   if (!username) throw new Error("Not logged in.");
   await withTimeout(setDoc(userDocRef(username), { language }, { merge: true }), "language:save");
   localStorage.setItem(LANG_KEY, language);
+  localStorage.setItem(perUserLangKey(username), language);
 }
 
 export async function getLanguagePreference(username = getCurrentUser()) {
@@ -249,8 +260,8 @@ export async function getLanguagePreference(username = getCurrentUser()) {
 // corrects the localStorage cache, sets the page's dir attribute, and
 // returns the resolved language so the caller can run translatePage().
 export async function applyUserLanguage() {
-  const cached = localStorage.getItem(LANG_KEY) || "en";
   const username = getCurrentUser();
+  const cached = (username && localStorage.getItem(perUserLangKey(username))) || localStorage.getItem(LANG_KEY) || "en";
   if (!username) return cached;
 
   let language = "en";
@@ -262,6 +273,7 @@ export async function applyUserLanguage() {
 
   document.documentElement.setAttribute("dir", language === "he" ? "rtl" : "ltr");
   localStorage.setItem(LANG_KEY, language);
+  localStorage.setItem(perUserLangKey(username), language);
   return language;
 }
 

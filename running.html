@@ -15,7 +15,9 @@
   if (localStorage.getItem('helth_theme') === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
-  window.__lang = localStorage.getItem('helth_lang') === 'he' ? 'he' : 'en';
+  var __cachedUser = localStorage.getItem('helth_user');
+  var __cachedLang = (__cachedUser && localStorage.getItem('helth_lang_' + __cachedUser)) || localStorage.getItem('helth_lang');
+  window.__lang = __cachedLang === 'he' ? 'he' : 'en';
   window.__getCurrentLang = function () { return window.__lang; };
   if (window.__lang === 'he') {
     document.documentElement.setAttribute('lang', 'he');
