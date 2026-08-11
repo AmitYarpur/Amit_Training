@@ -105,6 +105,52 @@
       <button class="btn-primary" id="start-btn" onclick="showScreen('menu-screen')" data-i18n="start_btn">Start</button>
     </div>
 
+    <!-- Screen 1.5: first-time onboarding, shown once right after signup -->
+    <div id="onboarding-screen" class="card screen">
+      <div class="welcome-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l1.5-4.5 3 9 2-11 2 6.5h6.5"/></svg>
+      </div>
+      <p class="eyebrow" data-i18n="eyebrow_helth">Helth</p>
+      <h1 class="headline" data-i18n="onboarding_title">Let's set up your profile</h1>
+      <p class="subtext" data-i18n="onboarding_subtext">A few quick details to personalize your home page. You can update these anytime in Settings.</p>
+
+      <div class="tile-list" style="margin: 18px 0 14px;">
+        <label class="field-row">
+          <span class="icon-badge badge-slate">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+          </span>
+          <span class="field-label" data-i18n="field_age">Age</span>
+          <input class="field-input" type="number" id="onboarding-age" inputmode="numeric" step="1" min="1" placeholder="--">
+        </label>
+
+        <label class="field-row">
+          <span class="icon-badge badge-lava">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M8 6l4-4 4 4"/><path d="M8 18l4 4 4-4"/></svg>
+          </span>
+          <span class="field-label" data-i18n="field_height_cm">Height (cm)</span>
+          <input class="field-input" type="number" id="onboarding-height" inputmode="numeric" step="1" min="1" placeholder="--">
+        </label>
+
+        <label class="field-row">
+          <img class="icon-badge" src="icons/weight-icon.png" alt="">
+          <span class="field-label" data-i18n="field_weight_kg">Weight (kg)</span>
+          <input class="field-input" type="number" id="onboarding-weight" inputmode="decimal" step="0.1" min="1" placeholder="--">
+        </label>
+
+        <label class="field-row">
+          <span class="icon-badge badge-cyan">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.2"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
+          </span>
+          <span class="field-label" data-i18n="field_destination_weight_kg">Destination Weight (kg)</span>
+          <input class="field-input" type="number" id="onboarding-target-weight" inputmode="decimal" step="0.1" min="1" placeholder="--">
+        </label>
+      </div>
+
+      <div class="error" id="onboarding-error" style="text-align:center; min-height:18px;"></div>
+      <button class="btn-primary" id="onboarding-save-btn" data-i18n="save_continue_btn">Save & Continue</button>
+      <p class="auth-toggle" style="text-align:center;"><a id="onboarding-skip-link" data-i18n="skip_for_now_link">Skip for now</a></p>
+    </div>
+
     <!-- Screen 2: menu -->
     <div id="menu-screen" class="card screen">
       <div class="user-badge">
@@ -114,6 +160,14 @@
       <h1 class="headline" id="home-greeting" style="font-size:26px;">Hi</h1>
 
       <div id="stats-section" style="display:none;">
+        <div class="summary-row" id="row-age" style="display:none;">
+          <span data-i18n="stat_age">Age</span>
+          <span class="value" id="stat-age"></span>
+        </div>
+        <div class="summary-row" id="row-height" style="display:none;">
+          <span data-i18n="stat_height">Height</span>
+          <span class="value" id="stat-height"></span>
+        </div>
         <div class="summary-row" id="row-current-weight" style="display:none;">
           <span data-i18n="stat_current_weight">Current Weight</span>
           <span class="value" id="stat-current-weight"></span>
@@ -217,13 +271,15 @@
   </script>
 
   <script type="module">
-    import { login, signup, applyUserTheme, applyUserLanguage, getWeightSessions, getUserProfile } from './db.js';
+    import { login, signup, applyUserTheme, applyUserLanguage, getWeightSessions, getUserProfile, saveUserProfile, saveWeight } from './db.js';
     window.__login = login;
     window.__signup = signup;
     window.__applyUserTheme = applyUserTheme;
     window.__applyUserLanguage = applyUserLanguage;
     window.__getWeightSessions = getWeightSessions;
     window.__getUserProfile = getUserProfile;
+    window.__saveUserProfile = saveUserProfile;
+    window.__saveWeight = saveWeight;
     window.__dbReadyResolve();
 
     // Reconciles theme + language against Firestore for the case where the
@@ -365,7 +421,7 @@
 
     document.getElementById('bmi-info-close-btn').addEventListener('click', closeBmiInfoModal);
 
-    function renderHomeStats(currentWeight, height, destWeight) {
+    function renderHomeStats(currentWeight, age, height, destWeight) {
       const section = document.getElementById('stats-section');
       if (currentWeight == null) {
         section.style.display = 'none';
@@ -375,6 +431,23 @@
       const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
       const t = window.__t;
       const kgUnit = t ? window.I18N.t('unit_kg', lang) : 'kg';
+      const cmUnit = t ? window.I18N.t('unit_cm', lang) : 'cm';
+
+      const ageRow = document.getElementById('row-age');
+      if (age) {
+        document.getElementById('stat-age').textContent = age;
+        ageRow.style.display = 'flex';
+      } else {
+        ageRow.style.display = 'none';
+      }
+
+      const heightRow = document.getElementById('row-height');
+      if (height) {
+        document.getElementById('stat-height').textContent = height + ' ' + cmUnit;
+        heightRow.style.display = 'flex';
+      } else {
+        heightRow.style.display = 'none';
+      }
 
       document.getElementById('stat-current-weight').textContent = currentWeight + ' ' + kgUnit;
       document.getElementById('row-current-weight').style.display = 'flex';
@@ -430,9 +503,10 @@
           window.__getUserProfile()
         ]);
         const currentWeight = weightSessions.length ? weightSessions[weightSessions.length - 1].value : null;
+        const age = profile && profile.age ? profile.age : null;
         const height = profile && profile.height ? profile.height : null;
         const destWeight = profile && profile.destinationWeight ? profile.destinationWeight : null;
-        renderHomeStats(currentWeight, height, destWeight);
+        renderHomeStats(currentWeight, age, height, destWeight);
       } catch (e) {
         document.getElementById('stats-section').style.display = 'none';
       }
@@ -485,6 +559,77 @@
       try {
         const action = authMode === 'login' ? window.__login : window.__signup;
         await action(username, password);
+        if (authMode === 'signup') {
+          enterOnboarding();
+        } else {
+          enterApp();
+        }
+      } catch (err) {
+        errorEl.textContent = err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    // Shown once, right after a brand-new signup (never on login) - see
+    // submitAuth(). Reuses the same profile/weight fields Settings and the
+    // Weight screen already write to, so filling this in is exactly
+    // equivalent to visiting both later; skipping it just leaves the home
+    // page stats hidden until the user fills them in from there instead.
+    function enterOnboarding() {
+      document.getElementById('onboarding-age').value = '';
+      document.getElementById('onboarding-height').value = '';
+      document.getElementById('onboarding-weight').value = '';
+      document.getElementById('onboarding-target-weight').value = '';
+      document.getElementById('onboarding-error').textContent = '';
+      showScreen('onboarding-screen');
+    }
+
+    async function saveOnboarding() {
+      const errorEl = document.getElementById('onboarding-error');
+      errorEl.textContent = '';
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const t = window.__t;
+
+      const ageRaw = document.getElementById('onboarding-age').value.trim();
+      const heightRaw = document.getElementById('onboarding-height').value.trim();
+      const weightRaw = document.getElementById('onboarding-weight').value.trim();
+      const targetRaw = document.getElementById('onboarding-target-weight').value.trim();
+
+      const profileValues = {};
+      for (const [raw, key] of [[ageRaw, 'age'], [heightRaw, 'height'], [targetRaw, 'destinationWeight']]) {
+        if (raw === '') continue;
+        const num = Number(raw);
+        if (!Number.isFinite(num) || num <= 0) {
+          errorEl.textContent = t ? window.I18N.t('err_profile_invalid', lang) : 'Please enter a positive number.';
+          return;
+        }
+        profileValues[key] = num;
+      }
+
+      let weightValue = null;
+      if (weightRaw !== '') {
+        const num = Number(weightRaw);
+        if (!Number.isFinite(num) || num <= 0) {
+          errorEl.textContent = t ? window.I18N.t('err_profile_invalid', lang) : 'Please enter a positive number.';
+          return;
+        }
+        weightValue = num;
+      }
+
+      const btn = document.getElementById('onboarding-save-btn');
+      btn.disabled = true;
+      try {
+        await Promise.race([window.__dbReady, new Promise(resolve => setTimeout(resolve, 8000))]);
+        if (Object.keys(profileValues).length && window.__saveUserProfile) {
+          await window.__saveUserProfile(profileValues);
+        }
+        // Counts as this user's first weight reading, same as logging one
+        // from the Weight screen - so it immediately shows up as Current
+        // Weight (and feeds the weight report/BMI) with no separate step.
+        if (weightValue != null && window.__saveWeight) {
+          await window.__saveWeight(weightValue);
+        }
         enterApp();
       } catch (err) {
         errorEl.textContent = err.message;
@@ -492,6 +637,13 @@
         btn.disabled = false;
       }
     }
+
+    function skipOnboarding() {
+      enterApp();
+    }
+
+    document.getElementById('onboarding-save-btn').addEventListener('click', saveOnboarding);
+    document.getElementById('onboarding-skip-link').addEventListener('click', skipOnboarding);
 
     function doLogout() {
       localStorage.removeItem(SESSION_KEY);

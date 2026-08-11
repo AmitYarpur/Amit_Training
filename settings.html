@@ -124,6 +124,14 @@
       <p class="settings-section-label" data-i18n="section_body_profile" style="margin-top:18px;">Body Profile</p>
       <div class="tile-list" style="margin-bottom:14px;">
         <label class="field-row">
+          <span class="icon-badge badge-slate">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+          </span>
+          <span class="field-label" data-i18n="field_age">Age</span>
+          <input class="field-input" type="number" id="input-age" inputmode="numeric" step="1" placeholder="--">
+        </label>
+
+        <label class="field-row">
           <span class="icon-badge badge-lava">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M8 6l4-4 4 4"/><path d="M8 18l4 4 4-4"/></svg>
           </span>
@@ -177,6 +185,7 @@
 
     getUserProfile().then(profile => {
       if (!profile) return;
+      if (profile.age != null) document.getElementById('input-age').value = profile.age;
       if (profile.height != null) document.getElementById('input-height').value = profile.height;
       if (profile.destinationWeight != null) document.getElementById('input-destination-weight').value = profile.destinationWeight;
     }).catch(() => {
@@ -260,6 +269,7 @@
     }
 
     async function saveProfile() {
+      const ageRaw = document.getElementById('input-age').value.trim();
       const heightRaw = document.getElementById('input-height').value.trim();
       const destWeightRaw = document.getElementById('input-destination-weight').value.trim();
       const statusEl = document.getElementById('profile-status');
@@ -267,7 +277,7 @@
       const t = window.__t;
 
       const values = {};
-      for (const [raw, key] of [[heightRaw, 'height'], [destWeightRaw, 'destinationWeight']]) {
+      for (const [raw, key] of [[ageRaw, 'age'], [heightRaw, 'height'], [destWeightRaw, 'destinationWeight']]) {
         if (raw === '') continue;
         const num = Number(raw);
         if (!Number.isFinite(num) || num <= 0) {

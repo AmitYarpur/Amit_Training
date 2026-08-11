@@ -46,6 +46,8 @@ const translations = {
     log_out: "Log out",
     home_page: "Home Page",
     home_greeting: "Hi, {username}",
+    stat_age: "Age",
+    stat_height: "Height",
     stat_current_weight: "Current Weight",
     stat_bmi: "BMI",
     stat_target_weight: "Target Weight",
@@ -64,6 +66,13 @@ const translations = {
     tile_training_timers: "Training Timers",
     tile_reports: "Reports",
     tile_settings: "Settings",
+
+    // onboarding wizard (index.html, first-time signup only)
+    onboarding_title: "Let's set up your profile",
+    onboarding_subtext: "A few quick details to personalize your home page. You can update these anytime in Settings.",
+    field_age: "Age",
+    save_continue_btn: "Save & Continue",
+    skip_for_now_link: "Skip for now",
 
     // training-timer.html
     headline_training_timer: "Training Timer",
@@ -229,6 +238,7 @@ const translations = {
     unit_km: "km",
     unit_min: "min",
     unit_kg: "kg",
+    unit_cm: "cm",
     unit_sessions_suffix: "sessions",
     unit_sec: "sec",
     workout_count_suffix: "times",
@@ -290,6 +300,8 @@ const translations = {
     log_out: "התנתקות",
     home_page: "דף הבית",
     home_greeting: "היי, {username}",
+    stat_age: "גיל",
+    stat_height: "גובה",
     stat_current_weight: "משקל נוכחי",
     stat_bmi: "BMI",
     stat_target_weight: "משקל יעד",
@@ -308,6 +320,13 @@ const translations = {
     tile_training_timers: "טיימרים לאימון",
     tile_reports: "דוחות",
     tile_settings: "הגדרות",
+
+    // onboarding wizard (index.html, first-time signup only)
+    onboarding_title: "בוא נגדיר את הפרופיל שלך",
+    onboarding_subtext: "כמה פרטים מהירים כדי להתאים אישית את דף הבית שלך. תוכל לעדכן אותם בכל עת בהגדרות.",
+    field_age: "גיל",
+    save_continue_btn: "שמירה והמשך",
+    skip_for_now_link: "דלג לעת עתה",
 
     // training-timer.html
     headline_training_timer: "טיימר מנוחה",
@@ -473,6 +492,7 @@ const translations = {
     unit_km: "ק״מ",
     unit_min: "דק'",
     unit_kg: "ק״ג",
+    unit_cm: "ס״מ",
     unit_sessions_suffix: "סטים",
     unit_sec: "שנ'",
     workout_count_suffix: "פעמים",
