@@ -78,6 +78,12 @@
       </div>
 
       <button class="btn-primary" id="start-rest-btn" data-i18n="start_rest_btn">Start Rest</button>
+
+      <div class="summary-row" style="margin-top:14px;">
+        <span data-i18n="rounds_completed">Rounds Completed</span>
+        <span class="value" id="rounds-completed-display">0</span>
+      </div>
+      <button class="btn-secondary" id="reset-rounds-btn" data-i18n="reset_rounds_btn">Reset Rounds</button>
     </div>
   </div>
 
@@ -108,15 +114,24 @@
     // picks the countdown back up instead of losing it.
     const REST_END_KEY = 'helth_rest_end_at';
     const DEFAULT_REST_SECONDS = 60;
+    const ROUNDS_KEY = 'helth_rounds_completed';
 
     let restSeconds = Number(localStorage.getItem(REST_KEY)) || DEFAULT_REST_SECONDS;
     let currentCount = restSeconds;
     let intervalId = null;
     let restEndAt = null;
+    let roundsCompleted = Number(localStorage.getItem(ROUNDS_KEY)) || 0;
 
     const display = document.getElementById('countdown-display');
     document.getElementById('input-rest-seconds').value = restSeconds;
     display.textContent = restSeconds;
+
+    const roundsDisplay = document.getElementById('rounds-completed-display');
+    roundsDisplay.textContent = roundsCompleted;
+
+    function updateRoundsDisplay() {
+      roundsDisplay.textContent = roundsCompleted;
+    }
 
     // Web Audio API beep - no audio file to host, just a short sine blip.
     let audioCtx = null;
@@ -178,6 +193,16 @@
       currentCount = restSeconds;
       updateDisplay();
       intervalId = setInterval(tick, 1000);
+
+      roundsCompleted += 1;
+      localStorage.setItem(ROUNDS_KEY, roundsCompleted);
+      updateRoundsDisplay();
+    }
+
+    function resetRounds() {
+      roundsCompleted = 0;
+      localStorage.setItem(ROUNDS_KEY, roundsCompleted);
+      updateRoundsDisplay();
     }
 
     // Picks a countdown already in progress back up - either because this
@@ -241,6 +266,7 @@
 
     document.getElementById('save-rest-btn').addEventListener('click', saveRestSeconds);
     document.getElementById('start-rest-btn').addEventListener('click', startRest);
+    document.getElementById('reset-rounds-btn').addEventListener('click', resetRounds);
   </script>
 
   <a class="back-fab" href="index.html#menu" data-i18n-aria="back_home" aria-label="Back">

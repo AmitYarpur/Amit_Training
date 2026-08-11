@@ -70,6 +70,8 @@ const translations = {
     section_rest_time: "Rest Time",
     field_rest_seconds: "Rest Time (seconds)",
     start_rest_btn: "Start Rest",
+    rounds_completed: "Rounds Completed",
+    reset_rounds_btn: "Reset Rounds",
 
     tab_home: "Home",
     tab_training: "Training",
@@ -311,6 +313,8 @@ const translations = {
     section_rest_time: "זמן מנוחה",
     field_rest_seconds: "זמן מנוחה (שניות)",
     start_rest_btn: "התחל מנוחה",
+    rounds_completed: "סבבים שהושלמו",
+    reset_rounds_btn: "איפוס סבבים",
 
     tab_home: "בית",
     tab_training: "אימונים",
