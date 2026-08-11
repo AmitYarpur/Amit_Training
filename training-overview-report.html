@@ -85,12 +85,28 @@
     gap: 6px;
     font-size: 13px;
     color: var(--text-secondary);
+    border: none;
+    background: var(--ghost-btn-bg);
+    border-radius: 999px;
+    padding: 5px 12px 5px 8px;
+    cursor: pointer;
+    opacity: 1;
+    transition: opacity 0.15s ease, background 0.15s ease, transform 0.15s ease;
+  }
+
+  .legend-item:active {
+    transform: scale(0.96);
+  }
+
+  .legend-item.inactive {
+    opacity: 0.4;
   }
 
   .legend-key {
     width: 12px;
     height: 12px;
     border-radius: 3px;
+    flex: 0 0 auto;
   }
 
   /* Chart */
@@ -228,6 +244,7 @@
     let allDays = []; // [{ date: Date (local midnight), kinds: Set<string> }], oldest first
     let days = [];
     let currentRangeDays = 'all';
+    let visibleKinds = new Set(KINDS); // legend toggle state - which kinds draw on the chart
 
     function formatDate(d) {
       const locale = window.__lang === 'he' ? 'he-IL' : undefined;
@@ -236,6 +253,24 @@
 
     function dayKey(d) {
       return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+    }
+
+    // Fills in every day from (today - rangeDays + 1) through today, even
+    // ones with no logged session at all, so the chart always ends on
+    // today and gaps in training show up as bars with nothing to stack
+    // rather than the day disappearing from the axis entirely.
+    function buildFilledRange(rangeDays) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const byKey = new Map(allDays.map(d => [dayKey(d.date), d]));
+      const result = [];
+      for (let offset = rangeDays - 1; offset >= 0; offset--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - offset);
+        const existing = byKey.get(dayKey(date));
+        result.push({ date, kinds: existing ? existing.kinds : new Set() });
+      }
+      return result;
     }
 
     async function loadAllDays() {
@@ -258,12 +293,16 @@
       return Array.from(byDay.values()).sort((a, b) => a.date - b.date);
     }
 
+    // Legend doubles as a filter: tapping a kind toggles whether it draws
+    // on the chart, so you can isolate just the exercises you care about.
     function renderLegend() {
       const legend = document.getElementById('legend');
       legend.innerHTML = '';
       KINDS.forEach(kind => {
-        const item = document.createElement('div');
+        const item = document.createElement('button');
+        item.type = 'button';
         item.className = 'legend-item';
+        item.classList.toggle('inactive', !visibleKinds.has(kind));
         const key = document.createElement('span');
         key.className = 'legend-key';
         key.style.background = COLORS[kind];
@@ -271,6 +310,15 @@
         label.textContent = window.I18N.t(LABEL_KEYS[kind], window.__lang);
         item.appendChild(key);
         item.appendChild(label);
+        item.addEventListener('click', () => {
+          if (visibleKinds.has(kind)) {
+            visibleKinds.delete(kind);
+          } else {
+            visibleKinds.add(kind);
+          }
+          item.classList.toggle('inactive', !visibleKinds.has(kind));
+          applyRange();
+        });
         legend.appendChild(item);
       });
     }
@@ -285,10 +333,13 @@
       const plotW = W - padL - padR;
       const plotH = H - padT - padB;
 
-      // Fixed 0-7 scale: the count of distinct exercise types can never
-      // exceed the number of exercises that exist, so the axis stays
-      // stable across range changes instead of rescaling every click.
-      const yMax = KINDS.length;
+      // Scale to the currently visible (legend-toggled) kinds, not the
+      // full KINDS list - stays stable across range changes (still just
+      // the day data changing under a fixed set of kinds), but adapts
+      // when the user narrows the legend, so a couple of isolated
+      // exercises don't render as tiny slivers against a fixed 0-7 axis.
+      const activeKinds = KINDS.filter(k => visibleKinds.has(k));
+      const yMax = activeKinds.length;
       const unitH = plotH / yMax;
 
       const n = days.length;
@@ -330,8 +381,12 @@
         }
       }
 
+      // A week or less always gets every day labeled - 7 dates comfortably
+      // fit, and seeing each day (including empty ones) is the point of
+      // that view. Longer ranges keep thinning labels so they don't
+      // overlap.
       const maxLabels = Math.max(3, Math.floor(plotW / 60));
-      const labelEvery = Math.max(1, Math.ceil(n / maxLabels));
+      const labelEvery = n <= 7 ? 1 : Math.max(1, Math.ceil(n / maxLabels));
       days.forEach((d, i) => {
         if (i % labelEvery !== 0 && i !== n - 1) return;
         const label = document.createElementNS(svgns, 'text');
@@ -345,7 +400,7 @@
       days.forEach((d, i) => {
         let baseline = padT + plotH;
         const cx = x(i);
-        KINDS.forEach(kind => {
+        activeKinds.forEach(kind => {
           if (!d.kinds.has(kind)) return;
           const rect = document.createElementNS(svgns, 'rect');
           rect.setAttribute('x', cx - barW / 2);
@@ -387,8 +442,14 @@
         dateEl.textContent = formatDate(d.date);
         tooltip.appendChild(dateEl);
 
-        KINDS.forEach(kind => {
-          if (!d.kinds.has(kind)) return;
+        const shownKinds = activeKinds.filter(kind => d.kinds.has(kind));
+        if (shownKinds.length === 0) {
+          const none = document.createElement('div');
+          none.className = 'tt-row';
+          none.textContent = window.I18N.t('no_training_that_day', window.__lang);
+          tooltip.appendChild(none);
+        }
+        shownKinds.forEach(kind => {
           const row = document.createElement('div');
           row.className = 'tt-row';
           const key = document.createElement('span');
@@ -451,19 +512,20 @@
     function applyRange() {
       const emptyMsg = document.getElementById('range-empty-msg');
 
-      if (currentRangeDays === 'all') {
-        days = allDays;
-      } else {
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - currentRangeDays);
-        days = allDays.filter(d => d.date >= cutoff);
-      }
+      // Fixed ranges (week/month/3 months/year) always fill every day up
+      // to today, logged or not - that's the whole point of those views.
+      // "All Time" stays logged-days-only: filling every day since a
+      // user's very first log could mean months or years of empty bars.
+      days = currentRangeDays === 'all' ? allDays : buildFilledRange(currentRangeDays);
 
       const chartContainer = document.getElementById('chart-container');
       const exportBtn = document.getElementById('export-btn');
 
-      if (days.length === 0) {
-        emptyMsg.textContent = window.I18N.t('no_sessions_in_range', window.__lang);
+      const hasAnyLoggedDay = days.some(d => d.kinds.size > 0);
+      if (days.length === 0 || !hasAnyLoggedDay || visibleKinds.size === 0) {
+        emptyMsg.textContent = visibleKinds.size === 0
+          ? window.I18N.t('no_kinds_selected', window.__lang)
+          : window.I18N.t('no_sessions_in_range', window.__lang);
         emptyMsg.style.display = 'block';
         chartContainer.style.display = 'none';
         exportBtn.style.display = 'none';
