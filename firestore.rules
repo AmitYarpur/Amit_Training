@@ -14,11 +14,12 @@ rules_version = '2';
 
       match /users/{username} {
         allow read: if true;
-        allow write: if request.resource.data.keys().hasOnly(['theme', 'language', 'height', 'destinationWeight'])
+        allow write: if request.resource.data.keys().hasOnly(['theme', 'language', 'height', 'destinationWeight', 'age'])
                     && (!('theme' in request.resource.data) || request.resource.data.theme in ['light', 'dark'])
                     && (!('language' in request.resource.data) || request.resource.data.language in ['en', 'he'])
                     && (!('height' in request.resource.data) || (request.resource.data.height is number && request.resource.data.height > 0 && request.resource.data.height < 300))
-                    && (!('destinationWeight' in request.resource.data) || (request.resource.data.destinationWeight is number && request.resource.data.destinationWeight > 0 && request.resource.data.destinationWeight < 500));
+                    && (!('destinationWeight' in request.resource.data) || (request.resource.data.destinationWeight is number && request.resource.data.destinationWeight > 0 && request.resource.data.destinationWeight < 500))
+                    && (!('age' in request.resource.data) || (request.resource.data.age is number && request.resource.data.age > 0 && request.resource.data.age < 120));
       }
 
       match /users/{username}/bloodPressureReadings/{readingId} {
