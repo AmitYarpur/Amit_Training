@@ -96,6 +96,8 @@ const translations = {
     admin_subtext: "Registered accounts. Passwords are never stored in a readable form - you can set a new one for someone, not see their current one.",
     reset_password_title: "Reset Password",
     new_password_label: "New password",
+    confirm_delete_user: "Delete {username} and all their data? This cannot be undone.",
+    err_delete_user_failed: "Could not delete user, please try again.\n",
 
     today_headline: "Today is the {date} and {time}",
 
@@ -350,6 +352,8 @@ const translations = {
     admin_subtext: "חשבונות רשומים. סיסמאות לעולם לא נשמרות בצורה קריאה - ניתן להגדיר סיסמה חדשה למישהו, לא לראות את הנוכחית שלו.",
     reset_password_title: "איפוס סיסמה",
     new_password_label: "סיסמה חדשה",
+    confirm_delete_user: "למחוק את {username} ואת כל הנתונים שלו? לא ניתן לבטל פעולה זו.",
+    err_delete_user_failed: "לא ניתן היה למחוק את המשתמש, נסה שוב.\n",
 
     today_headline: "היום {date}, השעה {time}",
 

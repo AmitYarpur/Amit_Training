@@ -73,7 +73,7 @@
   </script>
 
   <script type="module">
-    import { getAllUsernames, adminResetPassword, applyUserTheme, applyUserLanguage } from './db.js';
+    import { getAllUsernames, adminResetPassword, adminDeleteUser, applyUserTheme, applyUserLanguage } from './db.js';
     applyUserTheme();
     applyUserLanguage().then(lang => {
       window.__lang = lang;
@@ -122,12 +122,25 @@
     document.getElementById('reset-save-btn').addEventListener('click', saveNewPassword);
 
     const RESET_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+    const DELETE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
+
+    async function deleteUser(username, row) {
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      if (!confirm(window.I18N.t('confirm_delete_user', lang, { username }))) return;
+      try {
+        await adminDeleteUser(username);
+        row.remove();
+      } catch (err) {
+        alert(window.I18N.t('err_delete_user_failed', lang) + err.message);
+      }
+    }
 
     async function init() {
       const stateEl = document.getElementById('state-msg');
       const listEl = document.getElementById('user-list');
       try {
         const usernames = await getAllUsernames();
+        const selfUsername = (localStorage.getItem('helth_user') || '').toLowerCase();
         stateEl.style.display = 'none';
         listEl.style.display = 'flex';
         listEl.innerHTML = '';
@@ -148,6 +161,18 @@
           resetBtn.setAttribute('aria-label', window.I18N.t('reset_password_title', window.__lang));
           resetBtn.addEventListener('click', () => openResetModal(username));
           row.appendChild(resetBtn);
+
+          // No self-delete from this screen - removing the only admin
+          // account would lock everyone out of admin features.
+          if (username.toLowerCase() !== selfUsername) {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'icon-btn icon-btn-danger';
+            deleteBtn.innerHTML = DELETE_ICON;
+            deleteBtn.setAttribute('aria-label', window.I18N.t('delete', window.__lang));
+            deleteBtn.addEventListener('click', () => deleteUser(username, row));
+            row.appendChild(deleteBtn);
+          }
 
           listEl.appendChild(row);
         });

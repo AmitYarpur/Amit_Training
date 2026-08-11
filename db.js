@@ -174,6 +174,36 @@ export async function adminResetPassword(username, newPassword) {
   await withTimeout(updateDoc(credentialRef(username), { passwordHash }), "admin:resetPassword");
 }
 
+// Every per-user subcollection that can hold data - kept in sync with the
+// kind strings passed to saveTrainingSession() across the exercise pages,
+// plus the two non-training readings collections.
+const USER_SUBCOLLECTIONS = [
+  "weightReadings",
+  "bloodPressureReadings",
+  "runningSessions",
+  "walkingSessions",
+  "pulldownSessions",
+  "benchPressSessions",
+  "absSessions",
+  "plankSessions",
+  "pilatesSessions"
+];
+
+// Firestore's client SDK has no recursive delete, so this walks every
+// subcollection a user could have data in and deletes each document
+// individually before removing the profile and credentials docs
+// themselves. Irreversible - the caller (admin.html) is responsible for
+// confirming with the admin first.
+export async function adminDeleteUser(username) {
+  if (!username) throw new Error("Username required.");
+  for (const sub of USER_SUBCOLLECTIONS) {
+    const snap = await withTimeout(getDocs(collection(db, "users", username, sub)), "admin:deleteUser:" + sub);
+    await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+  }
+  await withTimeout(deleteDoc(userDocRef(username)), "admin:deleteUser:profile");
+  await withTimeout(deleteDoc(credentialRef(username)), "admin:deleteUser:credentials");
+}
+
 export function getCurrentUser() {
   return localStorage.getItem(SESSION_KEY);
 }

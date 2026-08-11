@@ -9,7 +9,11 @@ rules_version = '2';
         allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['passwordHash'])
                       && request.resource.data.passwordHash is string
                       && request.resource.data.passwordHash.size() == 64;
-        allow delete: if false;
+        // Lets the admin account (a client-side-only convention - see
+        // db.js's note on this app having no real per-user auth) remove a
+        // user entirely via adminDeleteUser(). Same trust model as
+        // adminResetPassword() above: enforced by the UI, not these rules.
+        allow delete: if true;
       }
 
       match /users/{username} {
@@ -20,6 +24,7 @@ rules_version = '2';
                     && (!('height' in request.resource.data) || (request.resource.data.height is number && request.resource.data.height > 0 && request.resource.data.height < 300))
                     && (!('destinationWeight' in request.resource.data) || (request.resource.data.destinationWeight is number && request.resource.data.destinationWeight > 0 && request.resource.data.destinationWeight < 500))
                     && (!('age' in request.resource.data) || (request.resource.data.age is number && request.resource.data.age > 0 && request.resource.data.age < 120));
+        allow delete: if true;
       }
 
       match /users/{username}/bloodPressureReadings/{readingId} {
