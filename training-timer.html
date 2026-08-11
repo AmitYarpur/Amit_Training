@@ -78,6 +78,7 @@
       </div>
 
       <button class="btn-primary" id="start-rest-btn" data-i18n="start_rest_btn">Start Rest</button>
+      <button class="btn-secondary" id="stop-rest-btn" style="margin-top:10px;" data-i18n="stop_rest_btn">Stop Rest</button>
 
       <div class="summary-row" style="margin-top:14px;">
         <span data-i18n="rounds_completed">Rounds Completed</span>
@@ -205,6 +206,15 @@
       updateRoundsDisplay();
     }
 
+    function stopRest() {
+      if (intervalId) clearInterval(intervalId);
+      intervalId = null;
+      restEndAt = null;
+      localStorage.removeItem(REST_END_KEY);
+      currentCount = restSeconds;
+      updateDisplay();
+    }
+
     // Picks a countdown already in progress back up - either because this
     // tab was just backgrounded and setInterval was paused, or because
     // the whole page got reloaded from scratch while backgrounded/closed.
@@ -266,6 +276,7 @@
 
     document.getElementById('save-rest-btn').addEventListener('click', saveRestSeconds);
     document.getElementById('start-rest-btn').addEventListener('click', startRest);
+    document.getElementById('stop-rest-btn').addEventListener('click', stopRest);
     document.getElementById('reset-rounds-btn').addEventListener('click', resetRounds);
   </script>
 
