@@ -397,6 +397,34 @@ button {
   color: var(--text-secondary);
 }
 
+.logout-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  border: 1.5px solid #d03b3b;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #d03b3b;
+  background: transparent;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.logout-btn svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  flex: 0 0 auto;
+}
+
+.logout-btn:active {
+  transform: scale(0.96);
+  background: rgba(208, 59, 59, 0.1);
+}
+
 .user-badge a {
   color: var(--accent-1);
   font-weight: 600;
