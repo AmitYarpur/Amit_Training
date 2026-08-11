@@ -107,13 +107,13 @@
     // counter. Mobile browsers throttle or fully suspend setInterval in a
     // backgrounded tab (switching to another app), so a tick-decrement
     // counter falls behind or stops advancing entirely while you're away.
-    // Storing the target end time lets every tick (and the resync below)
+    // Tracking the target end time lets every tick (and the resync below)
     // recompute "how long left" from the actual clock instead of trusting
     // how many ticks fired, so the display is correct the instant you
-    // come back - and persisting it means even a full page reload (iOS
-    // can discard a backgrounded tab's whole page under memory pressure)
-    // picks the countdown back up instead of losing it.
-    const REST_END_KEY = 'helth_rest_end_at';
+    // come back. Deliberately kept in memory only, not persisted - if the
+    // app actually closes (or the OS discards this backgrounded page and
+    // reloads it fresh), the countdown should reset and wait for Start
+    // Rest again rather than silently resume.
     const DEFAULT_REST_SECONDS = 60;
     const ROUNDS_KEY = 'helth_rounds_completed';
 
@@ -190,7 +190,6 @@
       unlockAudio();
       if (intervalId) clearInterval(intervalId);
       restEndAt = Date.now() + restSeconds * 1000;
-      localStorage.setItem(REST_END_KEY, restEndAt);
       currentCount = restSeconds;
       updateDisplay();
       intervalId = setInterval(tick, 1000);
@@ -210,34 +209,8 @@
       if (intervalId) clearInterval(intervalId);
       intervalId = null;
       restEndAt = null;
-      localStorage.removeItem(REST_END_KEY);
       currentCount = restSeconds;
       updateDisplay();
-    }
-
-    // Picks a countdown already in progress back up - either because this
-    // tab was just backgrounded and setInterval was paused, or because
-    // the whole page got reloaded from scratch while backgrounded/closed.
-    // A rest abandoned long ago (e.g. started yesterday, app never
-    // reopened) shouldn't resume into a huge negative overtime number -
-    // treat anything more than 30 minutes overdue as stale.
-    const STALE_OVERTIME_SECONDS = 30 * 60;
-
-    function resumeRestIfRunning() {
-      const savedEnd = Number(localStorage.getItem(REST_END_KEY));
-      if (!savedEnd) return;
-      restEndAt = savedEnd;
-      currentCount = remainingSeconds();
-      if (currentCount < -STALE_OVERTIME_SECONDS) {
-        restEndAt = null;
-        localStorage.removeItem(REST_END_KEY);
-        currentCount = restSeconds;
-        updateDisplay();
-        return;
-      }
-      updateDisplay();
-      if (intervalId) clearInterval(intervalId);
-      intervalId = setInterval(tick, 1000);
     }
 
     // setInterval alone can leave the display stale for a moment after
@@ -249,8 +222,6 @@
         updateDisplay();
       }
     });
-
-    resumeRestIfRunning();
 
     async function saveRestSeconds() {
       const raw = document.getElementById('input-rest-seconds').value.trim();
