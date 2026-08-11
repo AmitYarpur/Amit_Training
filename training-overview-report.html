@@ -255,22 +255,33 @@
       return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
     }
 
-    // Fills in every day from (today - rangeDays + 1) through today, even
-    // ones with no logged session at all, so the chart always ends on
-    // today and gaps in training show up as bars with nothing to stack
-    // rather than the day disappearing from the axis entirely.
-    function buildFilledRange(rangeDays) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+    function todayMidnight() {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    // Fills in every day from startDate through endDate inclusive, even
+    // ones with no logged session at all, so gaps in training show up as
+    // bars with nothing to stack rather than the day disappearing from
+    // the axis entirely.
+    function buildFilledDays(startDate, endDate) {
       const byKey = new Map(allDays.map(d => [dayKey(d.date), d]));
       const result = [];
-      for (let offset = rangeDays - 1; offset >= 0; offset--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - offset);
-        const existing = byKey.get(dayKey(date));
-        result.push({ date, kinds: existing ? existing.kinds : new Set() });
+      for (let cursor = new Date(startDate); cursor <= endDate; cursor.setDate(cursor.getDate() + 1)) {
+        const existing = byKey.get(dayKey(cursor));
+        result.push({ date: new Date(cursor), kinds: existing ? existing.kinds : new Set() });
       }
       return result;
+    }
+
+    // Fills (today - rangeDays + 1) through today - always ends on today
+    // regardless of when the most recent session was logged.
+    function buildFilledRange(rangeDays) {
+      const today = todayMidnight();
+      const start = new Date(today);
+      start.setDate(start.getDate() - (rangeDays - 1));
+      return buildFilledDays(start, today);
     }
 
     async function loadAllDays() {
@@ -512,11 +523,13 @@
     function applyRange() {
       const emptyMsg = document.getElementById('range-empty-msg');
 
-      // Fixed ranges (week/month/3 months/year) always fill every day up
-      // to today, logged or not - that's the whole point of those views.
-      // "All Time" stays logged-days-only: filling every day since a
-      // user's very first log could mean months or years of empty bars.
-      days = currentRangeDays === 'all' ? allDays : buildFilledRange(currentRangeDays);
+      // Every range - including All Time, from the very first logged day -
+      // fills in every day up to today, logged or not, so a gap in
+      // training shows up as an empty slot rather than the day vanishing
+      // from the axis.
+      days = currentRangeDays === 'all'
+        ? buildFilledDays(allDays[0].date, todayMidnight())
+        : buildFilledRange(currentRangeDays);
 
       const chartContainer = document.getElementById('chart-container');
       const exportBtn = document.getElementById('export-btn');
