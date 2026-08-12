@@ -691,7 +691,7 @@ button {
   background: var(--surface);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-hairline);
+  border: 1px solid var(--accent-1);
   border-radius: 20px;
   box-shadow: var(--shadow-card);
   padding: 8px;
