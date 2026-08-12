@@ -708,18 +708,21 @@ button {
   border: none;
   background: transparent;
   border-radius: 14px;
-  color: var(--text-muted);
+  /* --text-primary rather than literal black, so this stays high-contrast
+     (near-black on light, near-white on dark) instead of black-on-black
+     when the app is in dark mode. */
+  color: var(--text-primary);
   text-decoration: none;
   transition: color 0.15s ease, background 0.15s ease;
 }
 
 .tab-item svg {
-  width: 21px;
-  height: 21px;
+  width: 22px;
+  height: 22px;
 }
 
 .tab-item .tab-lbl {
-  font-size: 10.5px;
+  font-size: 12.5px;
   font-weight: 700;
 }
 
