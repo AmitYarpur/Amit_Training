@@ -312,6 +312,7 @@
 
       const onMenu = id === 'menu-screen';
       document.querySelector('.page').classList.toggle('has-tabbar', onMenu);
+      document.querySelector('.page').classList.toggle('welcome-bg', id === 'welcome-screen');
       document.getElementById('app-tabbar').style.display = onMenu ? 'flex' : 'none';
       if (onMenu) loadHomeStats();
     }

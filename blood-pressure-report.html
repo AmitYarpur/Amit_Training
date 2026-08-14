@@ -106,7 +106,7 @@
     width: 100%;
     height: auto;
     display: block;
-    touch-action: pan-y pinch-zoom;
+    touch-action: pan-y;
     direction: ltr;
   }
 
@@ -294,6 +294,7 @@
 
   <script type="module">
     import { getBloodPressureSessions, updateBloodPressureReading, deleteBloodPressureReading, applyUserTheme, applyUserLanguage } from './db.js';
+    import { openChartViewer } from './chart-viewer.js';
     applyUserTheme();
 
     const EDIT_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
@@ -735,6 +736,25 @@
       setupRangeFilter();
       applyRange();
     }
+
+    function openZoomedChart() {
+      if (!allSessions.length || !sessions.length) return;
+      openChartViewer({
+        title: window.I18N.t('headline_bp_report', window.__lang),
+        lang: window.__lang,
+        formatValue: (v) => String(v),
+        series: series().map(sr => ({
+          label: sr.label,
+          color: sr.hex,
+          points: allSessions
+            .filter(s => s[sr.key] != null)
+            .map(s => ({ date: s.recordedAt, value: s[sr.key] }))
+        })),
+        initialStart: sessions[0].recordedAt,
+        initialEnd: sessions[sessions.length - 1].recordedAt
+      });
+    }
+    document.getElementById('chart-container').addEventListener('click', openZoomedChart);
 
     document.getElementById('retry-btn').addEventListener('click', init);
     init();

@@ -82,7 +82,7 @@
     width: 100%;
     height: auto;
     display: block;
-    touch-action: pan-y pinch-zoom;
+    touch-action: pan-y;
     direction: ltr;
   }
 
@@ -261,6 +261,7 @@
 
   <script type="module">
     import { getWeightSessions, updateWeight, deleteWeight, getUserProfile, applyUserTheme, applyUserLanguage } from './db.js';
+    import { openChartViewer } from './chart-viewer.js';
     applyUserTheme();
 
     const SERIES_HEX = '#FF5722';
@@ -848,6 +849,24 @@
       setupRangeFilter();
       applyRange();
     }
+
+    function openZoomedChart() {
+      if (!allSessions.length || !sessions.length) return;
+      openChartViewer({
+        title: window.I18N.t('headline_weight_report', window.__lang),
+        unit: window.I18N.t('unit_kg', window.__lang),
+        lang: window.__lang,
+        series: [{
+          label: window.I18N.t('tile_weight', window.__lang),
+          color: SERIES_HEX,
+          area: true,
+          points: allSessions.map(s => ({ date: s.recordedAt, value: s.value }))
+        }],
+        initialStart: sessions[0].recordedAt,
+        initialEnd: sessions[sessions.length - 1].recordedAt
+      });
+    }
+    document.getElementById('chart-container').addEventListener('click', openZoomedChart);
 
     document.getElementById('retry-btn').addEventListener('click', init);
     init();

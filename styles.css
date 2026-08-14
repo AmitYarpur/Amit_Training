@@ -99,6 +99,37 @@ body {
   padding-top: 40px;
 }
 
+/* Welcome screen: full-bleed photo behind a frosted card, rather than the
+   plain surface every other screen uses - this is the one screen meant to
+   feel like a moment rather than a form. The gradient keeps the card's
+   corner readable against whatever the photo happens to be doing there. */
+/* Capped to a phone-width column (rather than covering the full browser
+   window) so the photo scales the same modest amount it would on an
+   actual phone - full width on mobile since the viewport is already
+   narrower than the cap, but no longer blown up across a wide desktop
+   window on larger screens. background-attachment stays at the default
+   (not fixed): fixed positions relative to the whole viewport even
+   inside a capped element, which would undo the cap. */
+.page.welcome-bg {
+  max-width: 480px;
+  margin: 0 auto;
+  background-image:
+    linear-gradient(180deg, rgba(10, 12, 16, 0.28) 0%, rgba(10, 12, 16, 0.08) 35%, rgba(10, 12, 16, 0.4) 100%),
+    url('icons/welcome-bg.jpg');
+  background-size: cover;
+  background-position: center;
+}
+
+.page.welcome-bg #welcome-screen {
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+:root[data-theme="dark"] .page.welcome-bg #welcome-screen {
+  background: rgba(11, 14, 20, 0.6);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
 /* Card */
 .card {
   width: 100%;
