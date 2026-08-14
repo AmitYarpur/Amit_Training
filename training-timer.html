@@ -51,6 +51,31 @@
   .countdown-display.overtime {
     color: #DC2626;
   }
+
+  .rounds-label {
+    text-align: center;
+  }
+
+  .rounds-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 2px 0 16px;
+  }
+
+  .rounds-display {
+    font-size: 48px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent-1);
+  }
+
+  /* Thin accent outline calling out the two "changes state" actions on
+     this page, distinct from the plain ghost look every other
+     btn-secondary uses elsewhere in the app. */
+  #stop-rest-btn,
+  #reset-rounds-btn {
+    border: 1.5px solid var(--accent-1);
+  }
 </style>
 </head>
 <body>
@@ -80,9 +105,9 @@
       <button class="btn-primary" id="start-rest-btn" data-i18n="start_rest_btn">Start Rest</button>
       <button class="btn-secondary" id="stop-rest-btn" style="margin-top:10px;" data-i18n="stop_rest_btn">Stop Rest</button>
 
-      <div class="summary-row" style="margin-top:14px;">
-        <span data-i18n="rounds_completed">Rounds Completed</span>
-        <span class="value" id="rounds-completed-display">0</span>
+      <p class="section-label rounds-label" style="margin-top:22px;" data-i18n="rounds_completed">Rounds Completed</p>
+      <div class="rounds-wrap">
+        <div class="rounds-display" id="rounds-completed-display">0</div>
       </div>
       <button class="btn-secondary" id="reset-rounds-btn" data-i18n="reset_rounds_btn">Reset Rounds</button>
     </div>
