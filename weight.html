@@ -40,7 +40,7 @@
     margin-top: 22px;
   }
 
-  #history-card {
+  #history-chart-card {
     --chart-surface: #e3e3e0;
     --chart-ink: #0b0b0b;
     --chart-muted: #6d6c66;
@@ -135,15 +135,17 @@
       <button class="btn-primary" onclick="startNewSession()" style="margin-top:22px;" data-i18n="log_another_reading">Log another reading</button>
     </div>
 
-    <!-- Screen 3: recent readings, always visible under either screen above -->
-    <div class="card" id="history-card">
+    <!-- Screen 3: last 5 measurements, always visible under either screen above -->
+    <div class="card" id="history-list-card">
       <p class="section-label" style="margin-top:0;" data-i18n="section_recent_readings">Recent Readings</p>
       <div id="history-state" class="state-msg" data-i18n="loading_readings">Loading readings…</div>
-      <div id="history-content" style="display:none;">
-        <div id="history-chart-container">
-          <svg id="history-chart" preserveAspectRatio="none"></svg>
-        </div>
-        <div id="history-list" style="margin-top:8px;"></div>
+      <div id="history-list" style="display:none;"></div>
+    </div>
+
+    <!-- Screen 4: trend graph of those same 5 measurements -->
+    <div class="card" id="history-chart-card" style="display:none;">
+      <div id="history-chart-container">
+        <svg id="history-chart" preserveAspectRatio="none"></svg>
       </div>
     </div>
 
@@ -377,24 +379,28 @@
       if (!window.__getWeightSessions) return;
       const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
       const stateEl = document.getElementById('history-state');
-      const contentEl = document.getElementById('history-content');
+      const listEl = document.getElementById('history-list');
+      const chartCard = document.getElementById('history-chart-card');
       try {
         const all = await window.__getWeightSessions();
         historySessions = all.slice(-5);
         if (historySessions.length === 0) {
           stateEl.textContent = window.__t ? window.__t('no_weight_logged', lang) : 'No weight readings logged yet.';
           stateEl.style.display = 'block';
-          contentEl.style.display = 'none';
+          listEl.style.display = 'none';
+          chartCard.style.display = 'none';
           return;
         }
         stateEl.style.display = 'none';
-        contentEl.style.display = 'block';
-        renderHistoryChart(historySessions);
+        listEl.style.display = 'block';
+        chartCard.style.display = 'block';
         renderHistoryList(historySessions);
+        renderHistoryChart(historySessions);
       } catch (err) {
         stateEl.textContent = (window.__t ? window.__t('could_not_load_readings', lang) : 'Could not load readings: ') + err.message;
         stateEl.style.display = 'block';
-        contentEl.style.display = 'none';
+        listEl.style.display = 'none';
+        chartCard.style.display = 'none';
       }
     }
     window.__refreshHistory = refreshHistory;
