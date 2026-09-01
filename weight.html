@@ -329,22 +329,32 @@
 
       const W = Math.max(280, Math.round(container.getBoundingClientRect().width));
       const H = 220;
-      const padL = 40, padR = 46, padT = 20, padB = 34;
+      const padL = 40, padR = 20, padT = 20, padB = 34;
       const plotW = W - padL - padR;
       const plotH = H - padT - padB;
 
       const n = sessions.length;
+      const lastEntryDate = sessions[n - 1].recordedAt;
+      // Pace-line value at a given date, clamped so it never overshoots
+      // past the destination weight.
+      const paceValueAt = date => {
+        const days = (date.getTime() - projection.firstDate.getTime()) / 86400000;
+        const value = projection.firstWeight - HISTORY_HEALTHY_LOSS_KG_PER_DAY * days;
+        return Math.max(value, destinationWeight);
+      };
+
       const values = sessions.map(s => s.value);
-      if (projection) values.push(destinationWeight);
+      if (projection) values.push(paceValueAt(lastEntryDate));
       let yMin = Math.floor((Math.min(...values) - 1) / 2) * 2;
       let yMax = Math.ceil((Math.max(...values) + 1) / 2) * 2;
       if (yMin === yMax) { yMin -= 2; yMax += 2; }
 
-      // True calendar-date x-axis (first entry -> last entry, or out to the
-      // projected target date when a projection is shown) rather than one
-      // point per index, so the readings span the actual time between them.
+      // True calendar-date x-axis, always clipped to the actual logged
+      // range (first entry -> last entry) - the projection line is drawn
+      // only across that same span, as a like-for-like comparison against
+      // the real data, rather than running out to the target date.
       let xDomainStart = sessions[0].recordedAt;
-      let xDomainEnd = projection ? projection.targetDate : sessions[n - 1].recordedAt;
+      let xDomainEnd = lastEntryDate;
       if (xDomainEnd.getTime() <= xDomainStart.getTime()) {
         xDomainEnd = new Date(xDomainStart.getTime() + 86400000);
       }
@@ -459,8 +469,8 @@
       if (projection) {
         const startX = xDate(projection.firstDate);
         const startY = py(projection.firstWeight);
-        const endX = xDate(projection.targetDate);
-        const endY = py(destinationWeight);
+        const endX = xDate(lastEntryDate);
+        const endY = py(paceValueAt(lastEntryDate));
 
         const dashed = document.createElementNS(svgns, 'path');
         dashed.setAttribute('d', `M${startX} ${startY} L${endX} ${endY}`);
@@ -470,31 +480,6 @@
         dashed.setAttribute('stroke-linecap', 'round');
         dashed.setAttribute('fill', 'none');
         svg.appendChild(dashed);
-
-        const goalMarker = document.createElementNS(svgns, 'circle');
-        goalMarker.setAttribute('cx', endX);
-        goalMarker.setAttribute('cy', endY);
-        goalMarker.setAttribute('r', 5);
-        goalMarker.setAttribute('fill', HISTORY_PROJECTION_HEX);
-        goalMarker.setAttribute('class', 'marker');
-        svg.appendChild(goalMarker);
-
-        const goalLabel1 = document.createElementNS(svgns, 'text');
-        goalLabel1.setAttribute('x', endX);
-        goalLabel1.setAttribute('y', endY - 14);
-        goalLabel1.setAttribute('text-anchor', 'end');
-        goalLabel1.setAttribute('class', 'end-label');
-        goalLabel1.setAttribute('fill', HISTORY_PROJECTION_HEX);
-        goalLabel1.textContent = destinationWeight + ' ' + unitKg();
-        svg.appendChild(goalLabel1);
-
-        const goalLabel2 = document.createElementNS(svgns, 'text');
-        goalLabel2.setAttribute('x', endX);
-        goalLabel2.setAttribute('y', endY + 18);
-        goalLabel2.setAttribute('text-anchor', 'end');
-        goalLabel2.setAttribute('class', 'axis-text');
-        goalLabel2.textContent = projection.targetDate.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
-        svg.appendChild(goalLabel2);
       }
     }
 
