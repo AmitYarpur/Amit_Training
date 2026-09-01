@@ -87,6 +87,7 @@ const translations = {
     tab_admin: "Admin",
     section_quick_log: "Quick Log",
     section_more: "More",
+    section_recent_readings: "Recent Readings",
 
     // admin.html
     headline_admin: "Administration",
@@ -342,6 +343,7 @@ const translations = {
     tab_admin: "ניהול",
     section_quick_log: "רישום מהיר",
     section_more: "עוד",
+    section_recent_readings: "מדידות אחרונות",
 
     // admin.html
     headline_admin: "ניהול",

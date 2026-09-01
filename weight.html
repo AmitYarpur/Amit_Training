@@ -39,6 +39,66 @@
   #submit-btn {
     margin-top: 22px;
   }
+
+  #history-card {
+    --chart-surface: #e3e3e0;
+    --chart-ink: #0b0b0b;
+    --chart-muted: #6d6c66;
+    --gridline: #cbcac5;
+    --series-weight: #FF5722;
+  }
+
+  .state-msg {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 18px 10px;
+    font-size: 14px;
+  }
+
+  #history-chart-container {
+    width: 100%;
+  }
+
+  #history-chart {
+    width: 100%;
+    height: auto;
+    display: block;
+    direction: ltr;
+  }
+
+  #history-chart .gridline {
+    stroke: var(--gridline);
+    stroke-width: 1;
+  }
+
+  #history-chart .axis-text {
+    fill: var(--chart-muted);
+    font-size: 12px;
+  }
+
+  #history-chart .series-line {
+    fill: none;
+    stroke: var(--series-weight);
+    stroke-width: 2.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+
+  #history-chart .marker {
+    fill: var(--series-weight);
+    stroke: var(--chart-surface);
+    stroke-width: 2;
+  }
+
+  #history-chart .end-label {
+    font-size: 13px;
+    font-weight: 700;
+    fill: var(--chart-ink);
+  }
+
+  #history-list .summary-row:last-of-type {
+    border-bottom: none;
+  }
 </style>
 </head>
 <body>
@@ -75,6 +135,18 @@
       <button class="btn-primary" onclick="startNewSession()" style="margin-top:22px;" data-i18n="log_another_reading">Log another reading</button>
     </div>
 
+    <!-- Screen 3: recent readings, always visible under either screen above -->
+    <div class="card" id="history-card">
+      <p class="section-label" style="margin-top:0;" data-i18n="section_recent_readings">Recent Readings</p>
+      <div id="history-state" class="state-msg" data-i18n="loading_readings">Loading readings…</div>
+      <div id="history-content" style="display:none;">
+        <div id="history-chart-container">
+          <svg id="history-chart" preserveAspectRatio="none"></svg>
+        </div>
+        <div id="history-list" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Are you sure -->
@@ -94,15 +166,17 @@
   </script>
 
   <script type="module">
-    import { saveWeight, applyUserTheme, applyUserLanguage } from './db.js';
+    import { saveWeight, getWeightSessions, applyUserTheme, applyUserLanguage } from './db.js';
     window.__saveWeight = saveWeight;
+    window.__getWeightSessions = getWeightSessions;
     applyUserTheme();
-
+    if (window.__refreshHistory) window.__refreshHistory();
 
     applyUserLanguage().then(lang => {
       window.__lang = lang;
       window.I18N.translatePage(lang);
       if (window.__updateHeadline) window.__updateHeadline();
+      if (window.__refreshHistory) window.__refreshHistory();
     });
   </script>
 
@@ -154,6 +228,7 @@
         await window.__saveWeight(value);
         closeModals();
         showSavedScreen(value);
+        refreshHistory();
       } catch (err) {
         btn.disabled = false;
         const prefix = window.__t ? window.__t('err_weight_save_failed', lang) : 'Could not save weight, please try again.\n';
@@ -181,6 +256,156 @@
     window.submitWeight = submitWeight;
     window.startNewSession = startNewSession;
     window.closeModals = closeModals;
+
+    // --- Recent readings: last 5 entries, shown as a small chart + list ---
+    let historySessions = [];
+
+    function renderHistoryChart(sessions) {
+      const svg = document.getElementById('history-chart');
+      const container = document.getElementById('history-chart-container');
+      if (!svg || !container) return;
+
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const locale = lang === 'he' ? 'he-IL' : undefined;
+
+      const W = Math.max(280, Math.round(container.getBoundingClientRect().width));
+      const H = 180;
+      const padL = 40, padR = 16, padT = 16, padB = 34;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+
+      const values = sessions.map(s => s.value);
+      let yMin = Math.floor((Math.min(...values) - 1) / 2) * 2;
+      let yMax = Math.ceil((Math.max(...values) + 1) / 2) * 2;
+      if (yMin === yMax) { yMin -= 2; yMax += 2; }
+
+      const n = sessions.length;
+      const px = i => n === 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
+      const py = v => padT + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
+
+      const svgns = 'http://www.w3.org/2000/svg';
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.innerHTML = '';
+
+      const bg = document.createElementNS(svgns, 'rect');
+      bg.setAttribute('x', 0);
+      bg.setAttribute('y', 0);
+      bg.setAttribute('width', W);
+      bg.setAttribute('height', H);
+      bg.setAttribute('rx', 14);
+      bg.setAttribute('fill', 'var(--chart-surface)');
+      svg.appendChild(bg);
+
+      const steps = 3;
+      for (let i = 0; i <= steps; i++) {
+        const v = yMin + (i / steps) * (yMax - yMin);
+        const gy = py(v);
+        const line = document.createElementNS(svgns, 'line');
+        line.setAttribute('x1', padL);
+        line.setAttribute('x2', W - padR);
+        line.setAttribute('y1', gy);
+        line.setAttribute('y2', gy);
+        line.setAttribute('class', 'gridline');
+        svg.appendChild(line);
+
+        const label = document.createElementNS(svgns, 'text');
+        label.setAttribute('x', padL - 6);
+        label.setAttribute('y', gy + 3);
+        label.setAttribute('text-anchor', 'end');
+        label.setAttribute('class', 'axis-text');
+        label.textContent = Math.round(v * 10) / 10;
+        svg.appendChild(label);
+      }
+
+      sessions.forEach((s, i) => {
+        const label = document.createElementNS(svgns, 'text');
+        label.setAttribute('x', px(i));
+        label.setAttribute('y', H - padB + 18);
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('class', 'axis-text');
+        label.textContent = s.recordedAt.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
+        svg.appendChild(label);
+      });
+
+      const points = sessions.map((s, i) => [px(i), py(s.value)]);
+      const path = document.createElementNS(svgns, 'path');
+      path.setAttribute('d', points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0] + ' ' + p[1]).join(' '));
+      path.setAttribute('class', 'series-line');
+      svg.appendChild(path);
+
+      points.forEach(([cx, cy]) => {
+        const c = document.createElementNS(svgns, 'circle');
+        c.setAttribute('cx', cx);
+        c.setAttribute('cy', cy);
+        c.setAttribute('r', 4.5);
+        c.setAttribute('class', 'marker');
+        svg.appendChild(c);
+      });
+
+      const [lastX, lastY] = points[points.length - 1];
+      const nearRightEdge = lastX + 8 > W - padR;
+      const last = document.createElementNS(svgns, 'text');
+      last.setAttribute('x', nearRightEdge ? lastX - 8 : lastX + 8);
+      last.setAttribute('y', lastY - 10);
+      last.setAttribute('text-anchor', nearRightEdge ? 'end' : 'start');
+      last.setAttribute('class', 'end-label');
+      last.textContent = sessions[sessions.length - 1].value + ' ' + unitKg();
+      svg.appendChild(last);
+    }
+
+    function renderHistoryList(sessions) {
+      const listEl = document.getElementById('history-list');
+      listEl.innerHTML = '';
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const locale = lang === 'he' ? 'he-IL' : undefined;
+      [...sessions].reverse().forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'summary-row';
+        const label = document.createElement('span');
+        label.textContent = s.recordedAt.toLocaleDateString(locale, { month: 'short', day: 'numeric' }) +
+          ' · ' + s.recordedAt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+        const value = document.createElement('span');
+        value.className = 'value';
+        value.textContent = s.value + ' ' + unitKg();
+        row.appendChild(label);
+        row.appendChild(value);
+        listEl.appendChild(row);
+      });
+    }
+
+    async function refreshHistory() {
+      if (!window.__getWeightSessions) return;
+      const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
+      const stateEl = document.getElementById('history-state');
+      const contentEl = document.getElementById('history-content');
+      try {
+        const all = await window.__getWeightSessions();
+        historySessions = all.slice(-5);
+        if (historySessions.length === 0) {
+          stateEl.textContent = window.__t ? window.__t('no_weight_logged', lang) : 'No weight readings logged yet.';
+          stateEl.style.display = 'block';
+          contentEl.style.display = 'none';
+          return;
+        }
+        stateEl.style.display = 'none';
+        contentEl.style.display = 'block';
+        renderHistoryChart(historySessions);
+        renderHistoryList(historySessions);
+      } catch (err) {
+        stateEl.textContent = (window.__t ? window.__t('could_not_load_readings', lang) : 'Could not load readings: ') + err.message;
+        stateEl.style.display = 'block';
+        contentEl.style.display = 'none';
+      }
+    }
+    window.__refreshHistory = refreshHistory;
+
+    let historyResizeTimer = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(historyResizeTimer);
+      historyResizeTimer = setTimeout(() => {
+        if (historySessions.length > 0) renderHistoryChart(historySessions);
+      }, 150);
+    });
   </script>
 
   <a class="back-fab" href="index.html#menu" data-i18n-aria="back_home" aria-label="Back">
