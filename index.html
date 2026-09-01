@@ -25,12 +25,11 @@
   window.__getCurrentLang = function () { return window.__lang; };
   // The db.js module script below is deferred by spec (executes after the
   // document finishes parsing), but the classic script at the bottom of
-  // this page runs immediately and can call loadHomeStats() before that
-  // module has assigned window.__getWeightSessions/__getUserProfile - most
-  // visibly when navigating here straight from the tabbar (index.html#menu)
-  // rather than through the Welcome screen's Start button, which gives the
-  // module time to load. This promise lets loadHomeStats() wait for real
-  // readiness instead of silently no-op'ing when it loses that race.
+  // this page runs immediately and calls loadHomeStats() as soon as login
+  // resolves, which can race ahead of that module assigning
+  // window.__getWeightSessions/__getUserProfile. This promise lets
+  // loadHomeStats() wait for real readiness instead of silently no-op'ing
+  // when it loses that race.
   window.__dbReady = new Promise(resolve => { window.__dbReadyResolve = resolve; });
   if (window.__lang === 'he') {
     document.documentElement.setAttribute('lang', 'he');
@@ -92,17 +91,6 @@
 
       <p class="auth-toggle" id="toggle-to-signup"><span data-i18n="new_here">New here? </span><a onclick="setAuthMode('signup')" data-i18n="sign_up_link">Sign Up</a></p>
       <p class="auth-toggle" id="toggle-to-login" style="display:none;"><span data-i18n="already_have_account">Already have an account? </span><a onclick="setAuthMode('login')" data-i18n="log_in_link">Log In</a></p>
-    </div>
-
-    <!-- Screen 1: welcome -->
-    <div id="welcome-screen" class="card screen">
-      <div class="welcome-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h4l1.5-4.5 3 9 2-11 2 6.5h6.5"/></svg>
-      </div>
-      <p class="eyebrow" data-i18n="eyebrow_helth">Helth</p>
-      <h1 class="headline" id="welcome-headline">Wellcome</h1>
-      <p class="subtext" data-i18n="welcome_subtext">Your personal health tracker. Log readings, watch trends, stay on top of it.</p>
-      <button class="btn-primary" id="start-btn" onclick="showScreen('menu-screen')" data-i18n="start_btn">Start</button>
     </div>
 
     <!-- Screen 1.5: first-time onboarding, shown once right after signup -->
@@ -312,7 +300,6 @@
 
       const onMenu = id === 'menu-screen';
       document.querySelector('.page').classList.toggle('has-tabbar', onMenu);
-      document.querySelector('.page').classList.toggle('welcome-bg', id === 'welcome-screen');
       document.getElementById('app-tabbar').style.display = onMenu ? 'flex' : 'none';
       if (onMenu) loadHomeStats();
     }
@@ -661,7 +648,6 @@
       if (!username) return;
       const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
       if (window.__t) {
-        document.getElementById('welcome-headline').textContent = window.__t('welcome_headline', lang, { username });
         document.getElementById('home-greeting').textContent = window.__t('home_greeting', lang, { username });
       }
     }
@@ -694,11 +680,7 @@
         }
       }
 
-      if (window.location.hash === '#menu') {
-        showScreen('menu-screen');
-      } else {
-        showScreen('welcome-screen');
-      }
+      showScreen('menu-screen');
     }
 
     window.showScreen = showScreen;
