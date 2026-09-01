@@ -330,6 +330,27 @@
       return Math.max(value, destinationWeight);
     }
 
+    // Smooth (Catmull-Rom -> cubic Bezier) curve through every point, the
+    // same technique stock-price charts use so the line reads as a trend
+    // rather than connect-the-dots. tension=6 is the standard Catmull-Rom
+    // constant for a natural-looking pull between neighboring points.
+    function smoothLinePath(points) {
+      if (points.length < 2) return '';
+      let d = `M${points[0][0]} ${points[0][1]}`;
+      for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i - 1] || points[i];
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const p3 = points[i + 2] || p2;
+        const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+        const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+        const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+        const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+        d += ` C${c1x} ${c1y} ${c2x} ${c2y} ${p2[0]} ${p2[1]}`;
+      }
+      return d;
+    }
+
     function formatDate(d) {
       const locale = window.__lang === 'he' ? 'he-IL' : undefined;
       return d.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
@@ -514,6 +535,24 @@
       bg.setAttribute('rx', 16);
       bg.setAttribute('fill', 'var(--chart-surface)');
       svg.appendChild(bg);
+
+      const defs = document.createElementNS(svgns, 'defs');
+      const gradient = document.createElementNS(svgns, 'linearGradient');
+      gradient.setAttribute('id', 'weight-area-gradient');
+      gradient.setAttribute('x1', '0'); gradient.setAttribute('y1', '0');
+      gradient.setAttribute('x2', '0'); gradient.setAttribute('y2', '1');
+      const stopTop = document.createElementNS(svgns, 'stop');
+      stopTop.setAttribute('offset', '0%');
+      stopTop.setAttribute('stop-color', SERIES_HEX);
+      stopTop.setAttribute('stop-opacity', '0.32');
+      const stopBottom = document.createElementNS(svgns, 'stop');
+      stopBottom.setAttribute('offset', '100%');
+      stopBottom.setAttribute('stop-color', SERIES_HEX);
+      stopBottom.setAttribute('stop-opacity', '0');
+      gradient.appendChild(stopTop);
+      gradient.appendChild(stopBottom);
+      defs.appendChild(gradient);
+      svg.appendChild(defs);
       // gridlines (4 horizontal steps)
       const steps = 4;
       for (let i = 0; i <= steps; i++) {
@@ -549,10 +588,19 @@
         svg.appendChild(label);
       });
 
-      // line + markers
+      // area fill + smooth line + markers
       const points = sessions.map((s, i) => [x(i), y(s.value)]);
+      const lineD = smoothLinePath(points);
+      const baselineY = padT + plotH;
+
+      const area = document.createElementNS(svgns, 'path');
+      area.setAttribute('d', `${lineD} L${points[points.length - 1][0]} ${baselineY} L${points[0][0]} ${baselineY} Z`);
+      area.setAttribute('fill', 'url(#weight-area-gradient)');
+      area.setAttribute('stroke', 'none');
+      svg.appendChild(area);
+
       const path = document.createElementNS(svgns, 'path');
-      path.setAttribute('d', points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0] + ' ' + p[1]).join(' '));
+      path.setAttribute('d', lineD);
       path.setAttribute('class', 'series-line');
       path.setAttribute('stroke', SERIES_HEX);
       svg.appendChild(path);

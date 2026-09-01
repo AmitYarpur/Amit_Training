@@ -5,7 +5,7 @@
 // only makes the UI itself load fast and stay viewable if the network
 // briefly drops.
 
-const CACHE_NAME = 'helth-static-v22';
+const CACHE_NAME = 'helth-static-v23';
 
 const PRECACHE_URLS = [
   './',
