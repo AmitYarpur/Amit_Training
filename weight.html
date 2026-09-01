@@ -34,6 +34,17 @@
 <link rel="stylesheet" href="styles.css">
 
 <style>
+  /* .page is a row flex container by default (shared styles.css) - fine
+     when only one card is ever visible at a time, but this screen now
+     stacks three cards (entry/saved, recent list, chart) simultaneously,
+     so it needs to lay them out as a column instead. */
+  .page {
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-top: 40px;
+    gap: 16px;
+  }
+
   .card.hidden { display: none; }
 
   #submit-btn {
