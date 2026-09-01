@@ -179,9 +179,10 @@
   </script>
 
   <script type="module">
-    import { saveWeight, getWeightSessions, applyUserTheme, applyUserLanguage } from './db.js';
+    import { saveWeight, getWeightSessions, getUserProfile, applyUserTheme, applyUserLanguage } from './db.js';
     window.__saveWeight = saveWeight;
     window.__getWeightSessions = getWeightSessions;
+    window.__getUserProfile = getUserProfile;
     applyUserTheme();
     if (window.__refreshHistory) window.__refreshHistory();
 
@@ -270,33 +271,53 @@
     window.startNewSession = startNewSession;
     window.closeModals = closeModals;
 
-    // --- Recent readings: last 5 entries, shown as a small chart + list ---
-    let historySessions = [];
+    // --- Recent readings: full history chart (with projection to target,
+    // same as the report's "Full View") + a short list of the last 3 ---
+    let historyAllSessions = [];
+    let historyDestinationWeight = null;
 
-    // Smooth (Catmull-Rom -> cubic Bezier) curve through every point, the
-    // same technique stock-price charts use so the line reads as a trend
-    // rather than connect-the-dots. tension=6 is the standard Catmull-Rom
-    // constant for a natural-looking pull between neighboring points.
+    const HISTORY_SERIES_HEX = '#FF5722';
+    const HISTORY_PROJECTION_HEX = '#00A8B5';
+    const HISTORY_HEALTHY_LOSS_KG_PER_DAY = 0.5 / 7;
+
+    // Smooth chart line via quadratic Beziers through each pair's midpoint,
+    // using the real data point only as the curve's "pull" (control point)
+    // rather than a point the line must pass through exactly. That's what
+    // keeps peaks gently rounded instead of a sharp connect-the-dots
+    // corner - the interpolating (Catmull-Rom) approach tried earlier still
+    // touches the exact peak, which reads as pointy with only a handful of
+    // widely-spaced readings.
     function smoothLinePath(points) {
-      if (points.length < 2) return '';
+      if (points.length === 0) return '';
+      if (points.length === 1) return `M${points[0][0]} ${points[0][1]}`;
       let d = `M${points[0][0]} ${points[0][1]}`;
       for (let i = 0; i < points.length - 1; i++) {
-        const p0 = points[i - 1] || points[i];
-        const p1 = points[i];
-        const p2 = points[i + 1];
-        const p3 = points[i + 2] || p2;
-        const c1x = p1[0] + (p2[0] - p0[0]) / 6;
-        const c1y = p1[1] + (p2[1] - p0[1]) / 6;
-        const c2x = p2[0] - (p3[0] - p1[0]) / 6;
-        const c2y = p2[1] - (p3[1] - p1[1]) / 6;
-        d += ` C${c1x} ${c1y} ${c2x} ${c2y} ${p2[0]} ${p2[1]}`;
+        const curr = points[i];
+        const next = points[i + 1];
+        const midX = (curr[0] + next[0]) / 2;
+        const midY = (curr[1] + next[1]) / 2;
+        d += ` Q${curr[0]} ${curr[1]} ${midX} ${midY}`;
       }
+      const last = points[points.length - 1];
+      d += ` L${last[0]} ${last[1]}`;
       return d;
     }
 
-    const HISTORY_SERIES_HEX = '#FF5722';
+    // Same healthy-pace (0.5 kg/week) projection as the report's Full View:
+    // anchored to the very first entry, drawn out to the date it reaches
+    // the destination weight set in Settings. Only makes sense when the
+    // goal is below the starting weight.
+    function buildHistoryProjection(sessions, destinationWeight) {
+      if (destinationWeight == null || sessions.length === 0) return null;
+      const firstWeight = sessions[0].value;
+      const firstDate = sessions[0].recordedAt;
+      if (destinationWeight >= firstWeight) return null;
+      const daysNeeded = (firstWeight - destinationWeight) / HISTORY_HEALTHY_LOSS_KG_PER_DAY;
+      const targetDate = new Date(firstDate.getTime() + daysNeeded * 86400000);
+      return { firstWeight, firstDate, targetDate };
+    }
 
-    function renderHistoryChart(sessions) {
+    function renderHistoryChart(sessions, destinationWeight) {
       const svg = document.getElementById('history-chart');
       const container = document.getElementById('history-chart-container');
       if (!svg || !container) return;
@@ -304,19 +325,32 @@
       const lang = window.__getCurrentLang ? window.__getCurrentLang() : 'en';
       const locale = lang === 'he' ? 'he-IL' : undefined;
 
+      const projection = buildHistoryProjection(sessions, destinationWeight);
+
       const W = Math.max(280, Math.round(container.getBoundingClientRect().width));
-      const H = 180;
-      const padL = 40, padR = 16, padT = 16, padB = 34;
+      const H = 220;
+      const padL = 40, padR = 46, padT = 20, padB = 34;
       const plotW = W - padL - padR;
       const plotH = H - padT - padB;
 
+      const n = sessions.length;
       const values = sessions.map(s => s.value);
+      if (projection) values.push(destinationWeight);
       let yMin = Math.floor((Math.min(...values) - 1) / 2) * 2;
       let yMax = Math.ceil((Math.max(...values) + 1) / 2) * 2;
       if (yMin === yMax) { yMin -= 2; yMax += 2; }
 
-      const n = sessions.length;
-      const px = i => n === 1 ? padL + plotW / 2 : padL + (i / (n - 1)) * plotW;
+      // True calendar-date x-axis (first entry -> last entry, or out to the
+      // projected target date when a projection is shown) rather than one
+      // point per index, so the readings span the actual time between them.
+      let xDomainStart = sessions[0].recordedAt;
+      let xDomainEnd = projection ? projection.targetDate : sessions[n - 1].recordedAt;
+      if (xDomainEnd.getTime() <= xDomainStart.getTime()) {
+        xDomainEnd = new Date(xDomainStart.getTime() + 86400000);
+      }
+      const domainMs = xDomainEnd.getTime() - xDomainStart.getTime();
+      const xDate = d => padL + ((d.getTime() - xDomainStart.getTime()) / domainMs) * plotW;
+      const px = i => xDate(sessions[i].recordedAt);
       const py = v => padT + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
 
       const svgns = 'http://www.w3.org/2000/svg';
@@ -371,7 +405,12 @@
         svg.appendChild(label);
       }
 
+      // x-axis labels, thinned so they never crowd once the chart spans
+      // the full history instead of just the last few readings
+      const maxLabels = Math.max(3, Math.floor(plotW / 60));
+      const labelEvery = Math.max(1, Math.ceil(n / maxLabels));
       sessions.forEach((s, i) => {
+        if (i % labelEvery !== 0 && i !== n - 1) return;
         const label = document.createElementNS(svgns, 'text');
         label.setAttribute('x', px(i));
         label.setAttribute('y', H - padB + 18);
@@ -414,6 +453,49 @@
       last.setAttribute('class', 'end-label');
       last.textContent = sessions[sessions.length - 1].value + ' ' + unitKg();
       svg.appendChild(last);
+
+      // Healthy-pace projection to the destination weight (תחזית ליעד),
+      // matching the report page's "Full View" mode.
+      if (projection) {
+        const startX = xDate(projection.firstDate);
+        const startY = py(projection.firstWeight);
+        const endX = xDate(projection.targetDate);
+        const endY = py(destinationWeight);
+
+        const dashed = document.createElementNS(svgns, 'path');
+        dashed.setAttribute('d', `M${startX} ${startY} L${endX} ${endY}`);
+        dashed.setAttribute('stroke', HISTORY_PROJECTION_HEX);
+        dashed.setAttribute('stroke-width', '2.5');
+        dashed.setAttribute('stroke-dasharray', '6 5');
+        dashed.setAttribute('stroke-linecap', 'round');
+        dashed.setAttribute('fill', 'none');
+        svg.appendChild(dashed);
+
+        const goalMarker = document.createElementNS(svgns, 'circle');
+        goalMarker.setAttribute('cx', endX);
+        goalMarker.setAttribute('cy', endY);
+        goalMarker.setAttribute('r', 5);
+        goalMarker.setAttribute('fill', HISTORY_PROJECTION_HEX);
+        goalMarker.setAttribute('class', 'marker');
+        svg.appendChild(goalMarker);
+
+        const goalLabel1 = document.createElementNS(svgns, 'text');
+        goalLabel1.setAttribute('x', endX);
+        goalLabel1.setAttribute('y', endY - 14);
+        goalLabel1.setAttribute('text-anchor', 'end');
+        goalLabel1.setAttribute('class', 'end-label');
+        goalLabel1.setAttribute('fill', HISTORY_PROJECTION_HEX);
+        goalLabel1.textContent = destinationWeight + ' ' + unitKg();
+        svg.appendChild(goalLabel1);
+
+        const goalLabel2 = document.createElementNS(svgns, 'text');
+        goalLabel2.setAttribute('x', endX);
+        goalLabel2.setAttribute('y', endY + 18);
+        goalLabel2.setAttribute('text-anchor', 'end');
+        goalLabel2.setAttribute('class', 'axis-text');
+        goalLabel2.textContent = projection.targetDate.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
+        svg.appendChild(goalLabel2);
+      }
     }
 
     function renderHistoryList(sessions) {
@@ -444,19 +526,30 @@
       const chartCard = document.getElementById('history-chart-card');
       try {
         const all = await window.__getWeightSessions();
-        historySessions = all.slice(-5);
-        if (historySessions.length === 0) {
+        historyAllSessions = all;
+        if (all.length === 0) {
           stateEl.textContent = window.__t ? window.__t('no_weight_logged', lang) : 'No weight readings logged yet.';
           stateEl.style.display = 'block';
           listEl.style.display = 'none';
           chartCard.style.display = 'none';
           return;
         }
+
+        historyDestinationWeight = null;
+        if (window.__getUserProfile) {
+          try {
+            const profile = await window.__getUserProfile();
+            historyDestinationWeight = profile && profile.destinationWeight ? profile.destinationWeight : null;
+          } catch (err) {
+            historyDestinationWeight = null; // keep the chart usable even if the profile fetch fails
+          }
+        }
+
         stateEl.style.display = 'none';
         listEl.style.display = 'block';
         chartCard.style.display = 'block';
-        renderHistoryList(historySessions);
-        renderHistoryChart(historySessions);
+        renderHistoryList(all.slice(-3));
+        renderHistoryChart(historyAllSessions, historyDestinationWeight);
       } catch (err) {
         stateEl.textContent = (window.__t ? window.__t('could_not_load_readings', lang) : 'Could not load readings: ') + err.message;
         stateEl.style.display = 'block';
@@ -470,7 +563,7 @@
     window.addEventListener('resize', () => {
       clearTimeout(historyResizeTimer);
       historyResizeTimer = setTimeout(() => {
-        if (historySessions.length > 0) renderHistoryChart(historySessions);
+        if (historyAllSessions.length > 0) renderHistoryChart(historyAllSessions, historyDestinationWeight);
       }, 150);
     });
   </script>
