@@ -289,16 +289,23 @@
     function smoothLinePath(points) {
       if (points.length === 0) return '';
       if (points.length === 1) return `M${points[0][0]} ${points[0][1]}`;
+      // Tension divisor: the standard Catmull-Rom value (6) barely bends
+      // the line when points are packed closely together (a few px apart
+      // on a chart spanning weeks of daily readings) - the curve is real
+      // but the bulge per segment rounds to sub-pixel and reads as
+      // straight. 3 doubles the pull so the curve is unmistakable while
+      // staying short of visible overshoot past neighboring points.
+      const TENSION_DIVISOR = 3;
       let d = `M${points[0][0]} ${points[0][1]}`;
       for (let i = 0; i < points.length - 1; i++) {
         const p0 = points[i - 1] || points[i];
         const p1 = points[i];
         const p2 = points[i + 1];
         const p3 = points[i + 2] || p2;
-        const c1x = p1[0] + (p2[0] - p0[0]) / 6;
-        const c1y = p1[1] + (p2[1] - p0[1]) / 6;
-        const c2x = p2[0] - (p3[0] - p1[0]) / 6;
-        const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+        const c1x = p1[0] + (p2[0] - p0[0]) / TENSION_DIVISOR;
+        const c1y = p1[1] + (p2[1] - p0[1]) / TENSION_DIVISOR;
+        const c2x = p2[0] - (p3[0] - p1[0]) / TENSION_DIVISOR;
+        const c2y = p2[1] - (p3[1] - p1[1]) / TENSION_DIVISOR;
         d += ` C${c1x} ${c1y} ${c2x} ${c2y} ${p2[0]} ${p2[1]}`;
       }
       return d;
