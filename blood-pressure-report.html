@@ -47,6 +47,7 @@
     --series-systolic:  #FF5722;
     --series-diastolic: #00A8B5;
     --series-heart:     #64748B;
+    --series-target:    #22A447;
   }
 
   body.viz-root {
@@ -120,16 +121,75 @@
     font-size: 15px;
   }
 
+  .period-nav {
+    direction: ltr;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: -6px 0 16px;
+  }
+
+  .period-label {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .period-arrow {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border-hairline);
+    background: var(--surface-wash);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .period-arrow svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .period-arrow:disabled {
+    opacity: 0.35;
+  }
+
+  .vgridline {
+    stroke: var(--gridline);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+  }
+
+  .target-line {
+    stroke: var(--series-target);
+    stroke-width: 2;
+    stroke-dasharray: 6 4;
+  }
+
   .series-line {
     fill: none;
-    stroke-width: 3;
+    stroke-width: 2.5;
     stroke-linejoin: round;
     stroke-linecap: round;
   }
 
   .marker {
+    stroke: #fff;
+    stroke-width: 1.5;
+  }
+
+  .point-label {
+    font-size: 11px;
+    fill: var(--chart-ink);
+    paint-order: stroke;
     stroke: var(--chart-surface);
-    stroke-width: 2.5;
+    stroke-width: 3;
+    stroke-linejoin: round;
   }
 
   .end-label {
@@ -232,10 +292,22 @@
           <button class="range-pill" data-range="all" data-i18n="range_all">All Time</button>
         </div>
 
+        <!-- always LTR so "left" means older, matching the chart's time axis -->
+        <div class="period-nav" id="period-nav" style="display:none;">
+          <button class="period-arrow" id="period-prev" data-i18n-aria="period_prev" aria-label="Previous period">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <span class="period-label" id="period-label"></span>
+          <button class="period-arrow" id="period-next" data-i18n-aria="period_next" aria-label="Next period">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+
         <div class="legend">
           <div class="legend-item"><span class="legend-key" style="background:var(--series-systolic)"></span><span data-i18n="legend_systolic">Systolic</span></div>
           <div class="legend-item"><span class="legend-key" style="background:var(--series-diastolic)"></span><span data-i18n="legend_diastolic">Diastolic</span></div>
           <div class="legend-item"><span class="legend-key" style="background:var(--series-heart)"></span><span data-i18n="legend_heart_rate">Heart rate</span></div>
+          <div class="legend-item"><span class="legend-key" style="background:var(--series-target)"></span><span data-i18n="legend_bp_target">Normal 120/80</span></div>
         </div>
 
         <div id="range-empty-msg" class="state-msg" style="display:none;"></div>
@@ -310,9 +382,38 @@
       ];
     }
 
+    // Normal-range reference lines drawn across the chart (AHA "normal" BP
+    // is below 120/80).
+    const BP_TARGETS = [120, 80];
+
+    // Smooth (Catmull-Rom -> cubic Bezier) curve through every point - same
+    // technique as weight-report.html, but with the standard divisor (6):
+    // BP readings zigzag day to day, and the weight chart's stronger pull
+    // would overshoot visibly past those peaks and dips.
+    function smoothLinePath(points) {
+      if (points.length === 0) return '';
+      if (points.length === 1) return `M${points[0][0]} ${points[0][1]}`;
+      const TENSION_DIVISOR = 6;
+      let d = `M${points[0][0]} ${points[0][1]}`;
+      for (let i = 0; i < points.length - 1; i++) {
+        const p0 = points[i - 1] || points[i];
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const p3 = points[i + 2] || p2;
+        const c1x = p1[0] + (p2[0] - p0[0]) / TENSION_DIVISOR;
+        const c1y = p1[1] + (p2[1] - p0[1]) / TENSION_DIVISOR;
+        const c2x = p2[0] - (p3[0] - p1[0]) / TENSION_DIVISOR;
+        const c2y = p2[1] - (p3[1] - p1[1]) / TENSION_DIVISOR;
+        d += ` C${c1x} ${c1y} ${c2x} ${c2y} ${p2[0]} ${p2[1]}`;
+      }
+      return d;
+    }
+
     let allSessions = [];
     let sessions = [];
     let currentRangeDays = 'all';
+    // how many whole periods back from today the fixed-range view is showing
+    let periodOffset = 0;
 
     function formatDate(d) {
       const locale = window.__lang === 'he' ? 'he-IL' : undefined;
@@ -462,8 +563,9 @@
       const plotH = H - padT - padB;
 
       const allValues = sessions.flatMap(s => series().map(sr => s[sr.key]).filter(v => v != null));
-      let yMin = Math.min(...allValues);
-      let yMax = Math.max(...allValues);
+      // include the target lines so they're always on the chart
+      let yMin = Math.min(...allValues, ...BP_TARGETS);
+      let yMax = Math.max(...allValues, ...BP_TARGETS);
       yMin = Math.floor((yMin - 5) / 10) * 10;
       yMax = Math.ceil((yMax + 5) / 10) * 10;
       if (yMin === yMax) { yMin -= 10; yMax += 10; }
@@ -484,10 +586,9 @@
       bg.setAttribute('rx', 16);
       bg.setAttribute('fill', 'var(--chart-surface)');
       svg.appendChild(bg);
-      // gridlines (4 horizontal steps)
-      const steps = 4;
-      for (let i = 0; i <= steps; i++) {
-        const v = yMin + (i / steps) * (yMax - yMin);
+      // horizontal gridlines every 10 (every 20 if that would be too dense)
+      const yStep = (yMax - yMin) / 10 > 10 ? 20 : 10;
+      for (let v = yMin; v <= yMax; v += yStep) {
         const gy = y(v);
         const line = document.createElementNS(svgns, 'line');
         line.setAttribute('x1', padL);
@@ -511,6 +612,14 @@
       const labelEvery = Math.max(1, Math.ceil(n / maxLabels));
       sessions.forEach((s, i) => {
         if (i % labelEvery !== 0 && i !== n - 1) return;
+        const vline = document.createElementNS(svgns, 'line');
+        vline.setAttribute('x1', x(i));
+        vline.setAttribute('x2', x(i));
+        vline.setAttribute('y1', padT);
+        vline.setAttribute('y2', H - padB);
+        vline.setAttribute('class', 'vgridline');
+        svg.appendChild(vline);
+
         const label = document.createElementNS(svgns, 'text');
         label.setAttribute('text-anchor', 'end');
         label.setAttribute('class', 'axis-text');
@@ -519,27 +628,54 @@
         svg.appendChild(label);
       });
 
+      // target (normal) reference lines
+      BP_TARGETS.forEach(t => {
+        const tl = document.createElementNS(svgns, 'line');
+        tl.setAttribute('x1', padL);
+        tl.setAttribute('x2', W - padR);
+        tl.setAttribute('y1', y(t));
+        tl.setAttribute('y2', y(t));
+        tl.setAttribute('class', 'target-line');
+        svg.appendChild(tl);
+      });
+
+      // per-point value labels only when points are spread enough for the
+      // numbers not to overlap each other
+      const showPointLabels = n === 1 || plotW / (n - 1) >= 24;
+
       // lines + markers per series
       series().forEach(sr => {
         const points = sessions
-          .map((s, i) => (s[sr.key] != null ? [x(i), y(s[sr.key])] : null))
+          .map((s, i) => (s[sr.key] != null ? [x(i), y(s[sr.key]), s[sr.key]] : null))
           .filter(Boolean);
         if (points.length === 0) return;
 
         const path = document.createElementNS(svgns, 'path');
-        path.setAttribute('d', points.map((p, i) => (i === 0 ? 'M' : 'L') + p[0] + ' ' + p[1]).join(' '));
+        path.setAttribute('d', smoothLinePath(points));
         path.setAttribute('class', 'series-line');
         path.setAttribute('stroke', sr.hex);
         svg.appendChild(path);
 
-        points.forEach(([px, py]) => {
+        points.forEach(([px, py, v], i) => {
           const c = document.createElementNS(svgns, 'circle');
           c.setAttribute('cx', px);
           c.setAttribute('cy', py);
-          c.setAttribute('r', 5);
+          c.setAttribute('r', 4);
           c.setAttribute('fill', sr.hex);
           c.setAttribute('class', 'marker');
           svg.appendChild(c);
+
+          // the last point already gets the bold end label
+          if (!showPointLabels || i === points.length - 1) return;
+          // heart rate sits near diastolic, so its numbers go below the line
+          const below = sr.key === 'heart_rate';
+          const t = document.createElementNS(svgns, 'text');
+          t.setAttribute('x', px);
+          t.setAttribute('y', below ? py + 16 : py - 9);
+          t.setAttribute('text-anchor', 'middle');
+          t.setAttribute('class', 'point-label');
+          t.textContent = v;
+          svg.appendChild(t);
         });
 
         // end label: value only, identity already carried by the legend/line color
@@ -660,12 +796,26 @@
     function applyRange() {
       const emptyMsg = document.getElementById('range-empty-msg');
 
+      const nav = document.getElementById('period-nav');
       if (currentRangeDays === 'all') {
         sessions = allSessions;
+        nav.style.display = 'none';
       } else {
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - currentRangeDays);
-        sessions = allSessions.filter(s => s.recordedAt >= cutoff);
+        // window of currentRangeDays, stepped back periodOffset whole windows
+        const end = new Date();
+        end.setDate(end.getDate() - periodOffset * currentRangeDays);
+        const start = new Date(end);
+        start.setDate(start.getDate() - currentRangeDays);
+        sessions = allSessions.filter(s =>
+          s.recordedAt >= start && (periodOffset === 0 || s.recordedAt < end));
+
+        const locale = window.__lang === 'he' ? 'he-IL' : undefined;
+        const fmt = d => d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+        document.getElementById('period-label').textContent = fmt(start) + ' – ' + fmt(end);
+        document.getElementById('period-next').disabled = periodOffset === 0;
+        document.getElementById('period-prev').disabled =
+          allSessions.length === 0 || allSessions[0].recordedAt >= start;
+        nav.style.display = 'flex';
       }
 
       const chartContainer = document.getElementById('chart-container');
@@ -693,9 +843,18 @@
         btn.addEventListener('click', () => {
           const range = btn.dataset.range;
           currentRangeDays = range === 'all' ? 'all' : Number(range);
+          periodOffset = 0;
           buttons.forEach(b => b.classList.toggle('active', b === btn));
           applyRange();
         });
+      });
+      document.getElementById('period-prev').addEventListener('click', () => {
+        periodOffset++;
+        applyRange();
+      });
+      document.getElementById('period-next').addEventListener('click', () => {
+        if (periodOffset > 0) periodOffset--;
+        applyRange();
       });
       // default to "All Time" so existing readings are visible right away
       const defaultBtn = buttons.find(b => b.dataset.range === 'all');
