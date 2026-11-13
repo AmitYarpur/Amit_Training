@@ -45,6 +45,7 @@
     --gridline:       #cbcac5;
     --axis:           #a8a79d;
     --series-weight:  #FF5722;
+    --series-target:  #22A447;
   }
 
   body.viz-root {
@@ -96,16 +97,75 @@
     font-size: 15px;
   }
 
+  .period-nav {
+    direction: ltr;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: -6px 0 16px;
+  }
+
+  .period-label {
+    flex: 1;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .period-arrow {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--border-hairline);
+    background: var(--surface-wash);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .period-arrow svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .period-arrow:disabled {
+    opacity: 0.35;
+  }
+
+  .vgridline {
+    stroke: var(--gridline);
+    stroke-width: 1;
+    stroke-dasharray: 3 4;
+  }
+
+  .target-line {
+    stroke: var(--series-target);
+    stroke-width: 2;
+    stroke-dasharray: 6 4;
+  }
+
   .series-line {
     fill: none;
-    stroke-width: 3;
+    stroke-width: 2.5;
     stroke-linejoin: round;
     stroke-linecap: round;
   }
 
   .marker {
+    stroke: #fff;
+    stroke-width: 1.5;
+  }
+
+  .point-label {
+    font-size: 11px;
+    fill: var(--chart-ink);
+    paint-order: stroke;
     stroke: var(--chart-surface);
-    stroke-width: 2.5;
+    stroke-width: 3;
+    stroke-linejoin: round;
   }
 
   .end-label {
@@ -208,6 +268,17 @@
           <button class="range-pill" data-range="all" data-i18n="range_all">All Time</button>
         </div>
 
+        <!-- always LTR so "left" means older, matching the chart's time axis -->
+        <div class="period-nav" id="period-nav" style="display:none;">
+          <button class="period-arrow" id="period-prev" data-i18n-aria="period_prev" aria-label="Previous period">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <span class="period-label" id="period-label"></span>
+          <button class="period-arrow" id="period-next" data-i18n-aria="period_next" aria-label="Next period">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+
         <div class="range-filter" id="projection-toggle-row" style="display:none; margin-bottom:14px;">
           <button class="range-pill" id="projection-toggle-btn" data-i18n="show_projection_toggle">Show projection to target</button>
           <button class="range-pill" id="full-view-btn" data-i18n="full_view_btn">Full View</button>
@@ -273,6 +344,8 @@
     let allSessions = [];
     let sessions = [];
     let currentRangeDays = 'all';
+    // how many whole periods back from today the fixed-range view is showing
+    let periodOffset = 0;
 
     // --- Projection towards the destination weight set in Settings ---
     // Uses a fixed healthy pace (0.5 kg/week - a standard safe weight-loss
@@ -563,10 +636,10 @@
       gradient.appendChild(stopBottom);
       defs.appendChild(gradient);
       svg.appendChild(defs);
-      // gridlines (4 horizontal steps)
-      const steps = 4;
-      for (let i = 0; i <= steps; i++) {
-        const v = yMin + (i / steps) * (yMax - yMin);
+      // horizontal gridlines on a round kg step that gives roughly 5-10 lines
+      const ySpan = yMax - yMin;
+      const yStep = ySpan <= 10 ? 1 : ySpan <= 20 ? 2 : 5;
+      for (let v = yMin; v <= yMax; v += yStep) {
         const gy = y(v);
         const line = document.createElementNS(svgns, 'line');
         line.setAttribute('x1', padL);
@@ -590,6 +663,14 @@
       const labelEvery = Math.max(1, Math.ceil(n / maxLabels));
       sessions.forEach((s, i) => {
         if (i % labelEvery !== 0 && i !== n - 1) return;
+        const vline = document.createElementNS(svgns, 'line');
+        vline.setAttribute('x1', x(i));
+        vline.setAttribute('x2', x(i));
+        vline.setAttribute('y1', padT);
+        vline.setAttribute('y2', H - padB);
+        vline.setAttribute('class', 'vgridline');
+        svg.appendChild(vline);
+
         const label = document.createElementNS(svgns, 'text');
         label.setAttribute('text-anchor', 'end');
         label.setAttribute('class', 'axis-text');
@@ -597,6 +678,18 @@
         label.textContent = formatDate(s.recordedAt);
         svg.appendChild(label);
       });
+
+      // goal weight reference line - only when it already falls inside the
+      // plotted range, so a far-off goal doesn't flatten the actual data
+      if (destinationWeight != null && destinationWeight >= yMin && destinationWeight <= yMax) {
+        const tl = document.createElementNS(svgns, 'line');
+        tl.setAttribute('x1', padL);
+        tl.setAttribute('x2', W - padR);
+        tl.setAttribute('y1', y(destinationWeight));
+        tl.setAttribute('y2', y(destinationWeight));
+        tl.setAttribute('class', 'target-line');
+        svg.appendChild(tl);
+      }
 
       // area fill + smooth line + markers
       const points = sessions.map((s, i) => [x(i), y(s.value)]);
@@ -615,14 +708,28 @@
       path.setAttribute('stroke', SERIES_HEX);
       svg.appendChild(path);
 
-      points.forEach(([px, py]) => {
+      // value above each point, skipping any that would crowd the previous
+      // label (points sit at real dates, so spacing is uneven); the last
+      // point already gets the bold end label
+      let lastLabelX = -Infinity;
+      points.forEach(([px, py], i) => {
         const c = document.createElementNS(svgns, 'circle');
         c.setAttribute('cx', px);
         c.setAttribute('cy', py);
-        c.setAttribute('r', 5);
+        c.setAttribute('r', 4);
         c.setAttribute('fill', SERIES_HEX);
         c.setAttribute('class', 'marker');
         svg.appendChild(c);
+
+        if (i === points.length - 1 || px - lastLabelX < 30) return;
+        lastLabelX = px;
+        const t = document.createElementNS(svgns, 'text');
+        t.setAttribute('x', px);
+        t.setAttribute('y', py - 9);
+        t.setAttribute('text-anchor', 'middle');
+        t.setAttribute('class', 'point-label');
+        t.textContent = sessions[i].value;
+        svg.appendChild(t);
       });
 
       // end label: value only - a single series needs no legend, the title already says what it is
@@ -788,12 +895,26 @@
     function applyRange() {
       const emptyMsg = document.getElementById('range-empty-msg');
 
+      const nav = document.getElementById('period-nav');
       if (currentRangeDays === 'all') {
         sessions = allSessions;
+        nav.style.display = 'none';
       } else {
-        const cutoff = new Date();
-        cutoff.setDate(cutoff.getDate() - currentRangeDays);
-        sessions = allSessions.filter(s => s.recordedAt >= cutoff);
+        // window of currentRangeDays, stepped back periodOffset whole windows
+        const end = new Date();
+        end.setDate(end.getDate() - periodOffset * currentRangeDays);
+        const start = new Date(end);
+        start.setDate(start.getDate() - currentRangeDays);
+        sessions = allSessions.filter(s =>
+          s.recordedAt >= start && (periodOffset === 0 || s.recordedAt < end));
+
+        const locale = window.__lang === 'he' ? 'he-IL' : undefined;
+        const fmt = d => d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+        document.getElementById('period-label').textContent = fmt(start) + ' – ' + fmt(end);
+        document.getElementById('period-next').disabled = periodOffset === 0;
+        document.getElementById('period-prev').disabled =
+          allSessions.length === 0 || allSessions[0].recordedAt >= start;
+        nav.style.display = 'flex';
       }
 
       const chartContainer = document.getElementById('chart-container');
@@ -855,9 +976,18 @@
         btn.addEventListener('click', () => {
           const range = btn.dataset.range;
           currentRangeDays = range === 'all' ? 'all' : Number(range);
+          periodOffset = 0;
           buttons.forEach(b => b.classList.toggle('active', b === btn));
           applyRange();
         });
+      });
+      document.getElementById('period-prev').addEventListener('click', () => {
+        periodOffset++;
+        applyRange();
+      });
+      document.getElementById('period-next').addEventListener('click', () => {
+        if (periodOffset > 0) periodOffset--;
+        applyRange();
       });
       // default to "All Time" so existing readings are visible right away
       const defaultBtn = buttons.find(b => b.dataset.range === 'all');
